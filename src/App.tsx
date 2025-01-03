@@ -11,6 +11,7 @@ import ChaletSearchResults from './routes/chalet-search';
 import ViewChaletDetails from './routes/view-chalet';
 import ConfirmReservation from './routes/confirm-reservation';
 import BookedConfirmation from './routes/reservation';
+import BookingVerify from './routes/booking-verify';
 
 const router = createBrowserRouter(
   createRoutesFromElements(
@@ -20,6 +21,7 @@ const router = createBrowserRouter(
       <Route path="/chalets/:id" element={<ViewChaletDetails />} />
       <Route path="/reservation/:id" element={<ConfirmReservation />} />
       <Route path="/reservation/confirmation" element={<BookedConfirmation />} />
+      <Route path="/booking-verify" element={<BookingVerify />} />
     </>,
   ),
 );

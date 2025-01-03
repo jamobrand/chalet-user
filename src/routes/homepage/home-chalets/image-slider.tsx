@@ -24,7 +24,7 @@ export const ImageSlider = ({ images }:ImageSliderProps) => {
         <img
           src={images[currentIndex].url}
           alt={images[currentIndex].alt}
-          className="h-full w-full object-cover group-hover:scale-105 transition-transform duration-300"
+          className="h-56 w-full object-cover group-hover:scale-105 transition-transform duration-300"
         />
       </div>
       {images.length > 1 && (

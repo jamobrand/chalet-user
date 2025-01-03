@@ -5,7 +5,6 @@ import {
   Calendar,
   Users,
   Download,
-  Share2,
   Mail,
   Phone,
   CreditCard,
@@ -17,12 +16,14 @@ import html2pdf from 'html2pdf.js';
 import { QRCodeSVG } from 'qrcode.react';
 import { LocationState } from './reserve-types';
 import { Button } from '@/components/ui/button';
+import GRVALLOGO from "../../assets/favicon.ico"
 
 const BookedConfirmation = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const reservationData = (location.state as LocationState)?.reservation?.data;
 
+  console.log("BookedConfirmation", location);
   if (!reservationData) {
     navigate('/search');
     return null;
@@ -41,35 +42,63 @@ const BookedConfirmation = () => {
     html2pdf().set(opt).from(element).save();
   };
 
-  const getQRCodeData = () => {
-    return JSON.stringify({
-      bookingId: reservationData.id,
-      chaletName: reservationData.chalet.name,
-      checkIn: reservationData.checkIn,
-      checkOut: reservationData.checkOut,
-      guestName: `${reservationData.customer.firstName} ${reservationData.customer.lastName}`,
-    });
-  };
+    // Create a proper URL for the QR code that includes all necessary booking details
+    const getBookingUrl = () => {
+      const baseUrl = window.location.origin;
+      const bookingData = {
+        id: reservationData.id,
+        chaletName: reservationData.chalet.name,
+        checkIn: reservationData.checkIn,
+        checkOut: reservationData.checkOut,
+        guest: `${reservationData.customer.firstName} ${reservationData.customer.lastName}`,
+      };
+      
+      // Create a URL-safe string of booking data
+      const params = new URLSearchParams({
+        booking: JSON.stringify(bookingData)
+      }).toString();
+      
+      return `${baseUrl}/booking-verify?${params}`;
+    };
 
-  const shareBooking = async () => {
-    if (navigator.share) {
-      try {
-        await navigator.share({
-          title: 'Booking Confirmation',
-          text: `Booking confirmation for ${reservationData.chalet.name}`,
-          url: window.location.href,
-        });
-      } catch (error) {
-        console.error('Error sharing:', error);
-      }
-    }
-  };
+  // const getQRCodeData = () => {
+  //   return JSON.stringify({
+  //     bookingId: reservationData.id,
+  //     chaletName: reservationData.chalet.name,
+  //     checkIn: reservationData.checkIn,
+  //     checkOut: reservationData.checkOut,
+  //     guestName: `${reservationData.customer.firstName} ${reservationData.customer.lastName}`,
+  //   });
+  // };
+
+  // const shareBooking = async () => {
+  //   if (navigator.share) {
+  //     try {
+  //       await navigator.share({
+  //         title: 'Booking Confirmation',
+  //         text: `Booking confirmation for ${reservationData.chalet.name}`,
+  //         url: window.location.href,
+  //       });
+  //     } catch (error) {
+  //       console.error('Error sharing:', error);
+  //     }
+  //   }
+  // };
 
   return (
     <div className="min-h-screen bg-gray-50 py-12">
       <div className="max-w-4xl mx-auto px-4" id="booking-confirmation">
         <Card className="bg-white shadow-lg">
           <CardHeader className="text-center border-b border-gray-200">
+             {/* Logo Section */}
+             <div className="flex justify-center mb-6">
+              <img
+                src={GRVALLOGO}
+                alt="Great Rift Valley Lodge and Golf Resort"
+                className="h-16 w-auto"
+              />
+            </div>
+
             <div className="mx-auto w-12 h-12 bg-green-100 rounded-full flex items-center justify-center mb-4">
               <Check className="w-6 h-6 text-green-600" />
             </div>
@@ -80,10 +109,10 @@ const BookedConfirmation = () => {
                 <Download className="w-4 h-4 mr-2" />
                 Download PDF
               </Button>
-              <Button variant="outline" onClick={shareBooking}>
+              {/* <Button variant="outline" onClick={shareBooking}>
                 <Share2 className="w-4 h-4 mr-2" />
                 Share
-              </Button>
+              </Button> */}
             </div>
           </CardHeader>
 
@@ -183,8 +212,16 @@ const BookedConfirmation = () => {
               {/* QR Code Section */}
               <div className="flex justify-center">
               <div className="p-4 bg-white rounded-lg shadow-sm">
-                <div style={{ background: 'white', padding: '16px' }}>
+                {/* <div style={{ background: 'white', padding: '16px' }}>
                   <QRCodeSVG value={getQRCodeData()} size={256} level="H" />
+                </div> */}
+
+                <div style={{ background: 'white', padding: '16px' }}>
+                  <QRCodeSVG 
+                    value={getBookingUrl()} 
+                    size={256} 
+                    level="H"
+                  />
                 </div>
 
                 <p className="text-sm text-gray-500 text-center mt-2">

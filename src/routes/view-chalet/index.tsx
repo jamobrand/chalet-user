@@ -13,6 +13,7 @@ import ChaletBookingWidget from './booking-widget';
 import { Separator } from '@/components/ui/separator';
 import ChaletRules from './house-rules';
 import { Facebook, Twitter, Instagram, Youtube, Linkedin } from 'lucide-react';
+import ViewChaletDetailsSkeleton from './view-chalet-skeleton';
 
 const ViewChaletDetails = () => {
   const params = useParams();
@@ -27,7 +28,8 @@ const ViewChaletDetails = () => {
     },
   });
 
-  if (isLoading) return <div>Loading...</div>;
+  // if (isLoading) return <div>Loading...</div>;
+if (isLoading) return <ViewChaletDetailsSkeleton />;
   if (error) return <div>Error loading chalet details</div>;
   if (!data) return null;
 
