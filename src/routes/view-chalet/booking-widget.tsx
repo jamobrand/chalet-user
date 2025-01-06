@@ -28,6 +28,11 @@ interface ChaletRoom {
   roomType: string;
   room?: number;
   capacity: number;
+  bunkBedCapacity:number | null;
+  floor:number;
+  numberOfRooms:number;
+  hasBunkBed:boolean;
+  notEnsuite: boolean;
 }
 
 interface ChaletUnavailableDate {
@@ -42,7 +47,10 @@ interface ChaletBookingProps {
     name: string;
     basePrice: string;
     images: ChaletImage[];
-    type: string;
+    propertyType: string;
+    maxAdults:number;
+    maxChildren:number;
+    totalSleeps:number;
     rooms: ChaletRoom[];
     ChaletUnavailableDates: ChaletUnavailableDate[];
     bookings: Booking[];
@@ -134,7 +142,7 @@ const ChaletBookingWidget = ({ chalet }: ChaletBookingProps) => {
         id: chalet.id,
         name: chalet.name,
         price: chalet.basePrice,
-        chaletType: chalet.type,
+        chaletType: chalet.propertyType,
         chaletImage: chalet.images?.find((image) => image.isMain)?.url || null, // Use .url or the appropriate property for the image
       };
 

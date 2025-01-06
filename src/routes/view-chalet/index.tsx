@@ -12,7 +12,7 @@ import { LocationMap } from './LocationMap';
 import ChaletBookingWidget from './booking-widget';
 import { Separator } from '@/components/ui/separator';
 import ChaletRules from './house-rules';
-import { Facebook, Twitter, Instagram, Youtube, Linkedin } from 'lucide-react';
+import { Facebook, Twitter, Instagram, Youtube, Linkedin, Users, Home, Building2, Bath } from 'lucide-react';
 import ViewChaletDetailsSkeleton from './view-chalet-skeleton';
 
 const ViewChaletDetails = () => {
@@ -29,7 +29,7 @@ const ViewChaletDetails = () => {
   });
 
   // if (isLoading) return <div>Loading...</div>;
-if (isLoading) return <ViewChaletDetailsSkeleton />;
+  if (isLoading) return <ViewChaletDetailsSkeleton />;
   if (error) return <div>Error loading chalet details</div>;
   if (!data) return null;
 
@@ -39,6 +39,29 @@ if (isLoading) return <ViewChaletDetailsSkeleton />;
     { name: 'Instagram', icon: Instagram, href: '#' },
     { name: 'YouTube', icon: Youtube, href: '#' },
     { name: 'LinkedIn', icon: Linkedin, href: '#' },
+  ];
+
+  const propertyHighlights = [
+    {
+      icon: Home,
+      label: 'Property Type',
+      value: data.propertyType === 'STANDALONE' ? 'DUPLEX_UPPER' : 'DUPLEX_LOWER',
+    },
+    {
+      icon: Users,
+      label: 'Guests',
+      value: `${data.totalSleeps} guests maximum`,
+    },
+    {
+      icon: Building2,
+      label: 'Rooms',
+      value: `${data.roomCount} bedrooms`,
+    },
+    {
+      icon: Bath,
+      label: 'Bathrooms',
+      value: `${data.totalWashrooms} bathrooms`,
+    },
   ];
 
   return (
@@ -57,9 +80,24 @@ if (isLoading) return <ViewChaletDetailsSkeleton />;
 
         <ImageGallery images={data.images} />
 
+          {/* Property Highlights */}
+          <div className="py-8 border-b">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+            {propertyHighlights.map((highlight, index) => (
+              <div key={index} className="flex flex-col items-center text-center">
+                <highlight.icon className="w-8 h-8 mb-2 text-gray-600" />
+                <p className="text-lg font-medium">{highlight.value}</p>
+                <p className="text-sm text-gray-500">{highlight.label}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-12">
           <div className="lg:col-span-2">
+            {/* Description */}
             <div className="py-6 border-b">
+              <h2 className="text-xl font-semibold mb-4">About this space</h2>
               <p className="text-gray-600 whitespace-pre-line">{data?.description}</p>
             </div>
 
@@ -68,19 +106,29 @@ if (isLoading) return <ViewChaletDetailsSkeleton />;
               <AmenitiesList amenities={data.amenities} />
             </div>
 
-            <div className="py-6">
-              <h2 className="text-xl font-semibold mb-4">Room Information</h2>
-              <div className="space-y-2">
-                <p>Type: {data.type}</p>
-                <p>Room Count: {data.roomCount}</p>
-                <p>Capacity: {data.rooms[0]?.capacity || 'N/A'} guests</p>
+             {/* Room Details */}
+             <div className="py-6 border-b">
+              <h2 className="text-xl font-semibold mb-4">Sleeping arrangements</h2>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {data.rooms.map((room, index) => (
+                  <div key={index} className="p-4 border rounded-lg">
+                    <h3 className="font-medium mb-2">Bedroom {index + 1}</h3>
+                    <p className="text-gray-600">
+                      {room.roomType} room with {room.capacity} person capacity
+                      {room.hasBunkBed && `, includes bunk bed (${room.bunkBedCapacity} persons)`}
+                    </p>
+                    <p className="text-gray-600 mt-1">
+                      {room.notEnsuite ? 'Shared bathroom' : 'En-suite bathroom'}
+                    </p>
+                  </div>
+                ))}
               </div>
             </div>
 
             <div className="py-6">
               <div className="mb-4">
                 <p className="text-2xl font-semibold">Available Dates for booking</p>
-                <p className="text-gray-600">Dates available for booking</p>
+                <p className="text-gray-600">Add your travel dates for exact pricing</p>
               </div>
               <BookingCalendar
                 unavailableDates={data.ChaletUnavailableDates}
@@ -95,7 +143,8 @@ if (isLoading) return <ViewChaletDetailsSkeleton />;
           </div>
         </div>
 
-        <div className="py-4">
+        <div className="py-4 border-t">
+          
           <LocationMap
             location={{
               locationName: data.locationName,
@@ -107,26 +156,21 @@ if (isLoading) return <ViewChaletDetailsSkeleton />;
 
         <Separator />
 
-        <div className="py-2 mt-4">
-          <div className="mb-4">
-            <p className="text-xl font-semibold">Chalet Rules</p>
-          </div>
+        {/* House Rules */}
+        <div className="py-6">
+          <h2 className="text-xl font-semibold mb-4">House rules</h2>
           <ChaletRules />
         </div>
       </div>
 
-      <footer className="bg-gray-900 text-gray-300">
-        {/* Main Footer Content */}
+     {/* Footer */}
+     <footer className="bg-gray-900 text-gray-300">
         <div className="max-w-7xl mx-auto px-4 py-6 sm:px-6 lg:px-8">
-          {/* Bottom Bar */}
           <div className="mt-6 border-t border-gray-800 pt-8">
             <div className="flex flex-col md:flex-row justify-between items-center gap-4">
-              {/* Copyright */}
               <p className="text-gray-400">
                 © {new Date().getFullYear()} Great Rift Valley Lodges. All rights reserved.
               </p>
-
-              {/* Social Links */}
               <div className="flex gap-4">
                 {socialLinks.map((social, index) => (
                   <a

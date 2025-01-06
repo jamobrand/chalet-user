@@ -6,7 +6,7 @@ export interface ApiResponse {
   interface Chalet {
     id: string;
     name: string;
-    type: string;
+    propertyType: string;
     basePrice: string; // Note: Changed to string as that's how it comes from API
     locationName: string;
     address: string;
@@ -15,6 +15,12 @@ export interface ApiResponse {
     roomCount: number;
     isEnsuite: boolean;
     description:string;
+    totalFloors:number;
+    totalSleeps:number;
+    totalWashrooms:number;
+    weekendPrice: number | 0;
+    maxAdults:number;
+    maxChildren:number;
     images: {
       id: string;
       alt?:string;
@@ -33,6 +39,11 @@ export interface ApiResponse {
       room?: number;
       roomType: string;
       capacity: number;
+      bunkBedCapacity:number | null;
+      floor:number;
+      numberOfRooms:number;
+      hasBunkBed:boolean;
+      notEnsuite: boolean;
     }[];
     _count: {
       rooms: number;

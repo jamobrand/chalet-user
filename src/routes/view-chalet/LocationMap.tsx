@@ -46,7 +46,7 @@ export const LocationMap = ({ location }: LocationMapProps) => {
   };
 
   return (
-    <div className="mt-6">
+    <div className="mt-4">
       <div className="p-4">
         <h3 className="text-lg font-semibold mb-2">Where you'll be</h3>
         <p className="text-gray-600 mb-4">{address}</p>

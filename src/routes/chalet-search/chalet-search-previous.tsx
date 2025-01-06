@@ -13,13 +13,13 @@ import {
   Map,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { useSearchChalets } from './feature/use-search-chalets';
 import { Card } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
-import { ChaletData, ChaletImage } from './chalet-search';
+import { ChaletData, ChaletImage, Room } from './chalet-search';
 import { Badge } from '@/components/ui/badge';
 import { useState } from 'react';
 import { cn } from '@/lib/utils';
-import { useSearchChaletsByRoom } from './feature/use-search-chalet-room';
 
 const AmenityIcon = ({ name }: { name: string }) => {
   switch (name) {
@@ -48,7 +48,7 @@ const ImageSlider = ({ images }: { images: ChaletImage[] }) => {
   };
 
   return (
-    <div className="relative w-full sm:w-96 h-80 group">
+    <div className="relative w-full sm:w-96 h-64 group">
       <img
         src={images[currentImageIndex].url}
         alt={images[currentImageIndex].alt}
@@ -57,7 +57,7 @@ const ImageSlider = ({ images }: { images: ChaletImage[] }) => {
       <div className="absolute inset-0 flex items-center justify-between p-2 opacity-0 group-hover:opacity-100 transition-opacity">
         <Button
           variant="secondary"
-          type="button"
+          type='button'
           size="icon"
           className="bg-black/50 hover:bg-black/70"
           onClick={prevImage}
@@ -67,7 +67,7 @@ const ImageSlider = ({ images }: { images: ChaletImage[] }) => {
         <Button
           variant="secondary"
           size="icon"
-          type="button"
+          type='button'
           className="bg-black/50 hover:bg-black/70"
           onClick={nextImage}
         >
@@ -89,13 +89,17 @@ const ImageSlider = ({ images }: { images: ChaletImage[] }) => {
   );
 };
 
-const ChaletCard = ({ chalet }: { chalet: ChaletData }) => {
+const ChaletCard = ({
+  chalet,
+}: {
+  chalet: ChaletData;
+}) => {
   const navigate = useNavigate();
   const totalCapacity = chalet.rooms.reduce((sum, room) => sum + room.capacity, 0);
   const mainAmenities = chalet.amenities.slice(0, 4);
 
-  const handleSelect = (chalet: ChaletData) => {
-    navigate(`/chalets/${chalet.id}`);
+   const handleSelect = (chalet: ChaletData) => {
+    navigate(`/chalets/${chalet.id}`)
   };
 
   return (
@@ -169,56 +173,34 @@ const ChaletCard = ({ chalet }: { chalet: ChaletData }) => {
 };
 
 const ChaletSearchResults = () => {
+  
   const [searchParams] = useSearchParams();
-  const navigate = useNavigate();
+  const navigate = useNavigate()
 
   // Parse dates
   const checkIn = new Date(searchParams.get('checkIn') || '');
   const checkOut = new Date(searchParams.get('checkOut') || '');
 
-  const roomsData = searchParams.get('rooms');
-
   // Parse rooms data
-  // const roomsData = searchParams.get('rooms');
-  // const rooms: Room[] = roomsData ? JSON.parse(roomsData) : [];
+  const roomsData = searchParams.get('rooms');
+  const rooms: Room[] = roomsData ? JSON.parse(roomsData) : [];
 
   // Calculate totals
-  // const totalGuests = rooms.reduce((sum, room) => sum + room.adults + room.children, 0);
-  // const totalRooms = rooms.length;
+  const totalGuests = rooms.reduce((sum, room) => sum + room.adults + room.children, 0);
+  const totalRooms = rooms.length;
 
-  // // Function to get room summary text
-  // const getRoomSummary = (room: Room, index: number) => {
-  //   return `Room ${index + 1}: ${room.adults} ${room.adults === 1 ? 'adult' : 'adults'}${
-  //     room.children ? ` & ${room.children} ${room.children === 1 ? 'child' : 'children'}` : ''
-  //   }`;
-  // };
+  // Function to get room summary text
+  const getRoomSummary = (room: Room, index: number) => {
+    return `Room ${index + 1}: ${room.adults} ${room.adults === 1 ? 'adult' : 'adults'}${
+      room.children ? ` & ${room.children} ${room.children === 1 ? 'child' : 'children'}` : ''
+    }`;
+  };
 
-  // const { data: chalets, isLoading } = useSearchChalets({
-  //   checkIn: new Date(searchParams.get('checkIn') || ''),
-  //   checkOut: new Date(searchParams.get('checkOut') || ''),
-  //   rooms: rooms,
-  // });
-
-  const { data: chalets, isLoading } = useSearchChaletsByRoom({
+  const { data: chalets, isLoading } = useSearchChalets({
     checkIn: new Date(searchParams.get('checkIn') || ''),
     checkOut: new Date(searchParams.get('checkOut') || ''),
-    rooms: Number(roomsData),
+    rooms: rooms,
   });
-
-  // Calculate totals
-  // const totalGuests = rooms.reduce((sum, room) => sum + room.adults + room.children, 0);
-  // const totalRooms = rooms.length;
-
-  // // Function to get room summary text
-  // const getRoomSummary = (room: Room, index: number) => {
-  //   return `Room ${index + 1}: ${room.adults} ${room.adults === 1 ? 'adult' : 'adults'}${
-  //     room.children ? ` & ${room.children} ${room.children === 1 ? 'child' : 'children'}` : ''
-  //   }`;
-  // };
-
-  // console.log("chalets:", chalets)
-
-  // const totalRooms = chalets && chalets.roomCount
 
   return (
     <>
@@ -259,20 +241,20 @@ const ChaletSearchResults = () => {
               </div>
 
               {/* Guests & Rooms */}
-              {/* <Users className="h-5 w-5 text-gray-500 ml-10" />
-              <div className="flex flex-col mr-9"> */}
-                {/* <div className="font-medium">
-                  {totalRooms} {totalRooms === 1 ? 'Room' : 'Rooms'} · {chalets && chalets.totalSleeps}{' '}
-                  {chalets && chalets.totalSleeps === 1 ? 'Guest' : 'Guests'}
-                </div> */}
-                {/* <div className="text-sm text-gray-500 mt-1">
-                  {chalets?.rooms?.map((room, index) => (
+              <Users className="h-5 w-5 text-gray-500 ml-10" />
+              <div className="flex flex-col mr-9">
+                <div className="font-medium">
+                  {totalRooms} {totalRooms === 1 ? 'Room' : 'Rooms'} · {totalGuests}{' '}
+                  {totalGuests === 1 ? 'Guest' : 'Guests'}
+                </div>
+                <div className="text-sm text-gray-500 mt-1">
+                  {rooms.map((room, index) => (
                     <div key={room.id} className="mb-1">
                       {getRoomSummary(room, index)}
                     </div>
                   ))}
-                </div> */}
-              {/* </div> */}
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -303,11 +285,9 @@ const ChaletSearchResults = () => {
         {!isLoading && (
           <div className="space-y-6">
             {chalets.map((chalet: ChaletData) => (
-              <ChaletCard
-                key={chalet.id}
-                chalet={chalet}
-
-                // onSelect={handleSelect}
+              <ChaletCard key={chalet.id} chalet={chalet} 
+              
+              // onSelect={handleSelect} 
               />
             ))}
           </div>
