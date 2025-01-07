@@ -12,7 +12,16 @@ import { LocationMap } from './LocationMap';
 import ChaletBookingWidget from './booking-widget';
 import { Separator } from '@/components/ui/separator';
 import ChaletRules from './house-rules';
-import { Facebook, Twitter, Instagram, Youtube, Linkedin, Users, Home, Building2, Bath } from 'lucide-react';
+import {
+  Facebook,
+  Twitter,
+  Instagram,
+  Youtube,
+  Linkedin,
+  Home,
+  Building2,
+  Bath,
+} from 'lucide-react';
 import ViewChaletDetailsSkeleton from './view-chalet-skeleton';
 
 const ViewChaletDetails = () => {
@@ -47,11 +56,11 @@ const ViewChaletDetails = () => {
       label: 'Property Type',
       value: data.propertyType === 'STANDALONE' ? 'DUPLEX_UPPER' : 'DUPLEX_LOWER',
     },
-    {
-      icon: Users,
-      label: 'Guests',
-      value: `${data.totalSleeps} guests maximum`,
-    },
+    // {
+    //   icon: Users,
+    //   label: 'Guests',
+    //   value: `${data.totalSleeps} guests maximum`,
+    // },
     {
       icon: Building2,
       label: 'Rooms',
@@ -80,8 +89,8 @@ const ViewChaletDetails = () => {
 
         <ImageGallery images={data.images} />
 
-          {/* Property Highlights */}
-          <div className="py-8 border-b">
+        {/* Property Highlights */}
+        <div className="py-8 border-b">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
             {propertyHighlights.map((highlight, index) => (
               <div key={index} className="flex flex-col items-center text-center">
@@ -106,8 +115,8 @@ const ViewChaletDetails = () => {
               <AmenitiesList amenities={data.amenities} />
             </div>
 
-             {/* Room Details */}
-             <div className="py-6 border-b">
+            {/* Room Details */}
+            <div className="py-6 border-b">
               <h2 className="text-xl font-semibold mb-4">Sleeping arrangements</h2>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {data.rooms.map((room, index) => (
@@ -144,7 +153,6 @@ const ViewChaletDetails = () => {
         </div>
 
         <div className="py-4 border-t">
-          
           <LocationMap
             location={{
               locationName: data.locationName,
@@ -163,8 +171,8 @@ const ViewChaletDetails = () => {
         </div>
       </div>
 
-     {/* Footer */}
-     <footer className="bg-gray-900 text-gray-300">
+      {/* Footer */}
+      <footer className="bg-gray-900 text-gray-300">
         <div className="max-w-7xl mx-auto px-4 py-6 sm:px-6 lg:px-8">
           <div className="mt-6 border-t border-gray-800 pt-8">
             <div className="flex flex-col md:flex-row justify-between items-center gap-4">
