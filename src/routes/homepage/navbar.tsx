@@ -1,21 +1,17 @@
 import React from 'react';
-import {
-  Sheet,
-  SheetContent,
-  SheetTrigger,
-} from "@/components/ui/sheet";
-import { Menu } from "lucide-react";
+import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
+import { Menu } from 'lucide-react';
 
 const Header = () => {
   const [isOpen, setIsOpen] = React.useState(false);
 
   const navLinks = [
-    { href: "#", label: "Homepage", current: true },
-    { href: "#", label: "Accommodation", current: false },
-    { href: "#", label: "Food & Beverage", current: false },
-    { href: "#", label: "Meeting & Events", current: false },
-    { href: "#", label: "Golf", current: false },
-    { href: "#", label: "Experiences", current: false },
+    { href: '#', label: 'Homepage', current: true },
+    { href: '#', label: 'Accommodation', current: false },
+    { href: '#', label: 'Food & Beverage', current: false },
+    { href: '#', label: 'Meeting & Events', current: false },
+    { href: '#', label: 'Golf', current: false },
+    { href: '#', label: 'Experiences', current: false },
   ];
 
   return (
@@ -32,15 +28,14 @@ const Header = () => {
               GRVL
             </span>
           </a>
-          
+
           <div className="flex items-center lg:order-2">
-            <a
+            {/* <a
               href="#"
               className="text-white bg-[#27534c] hover:bg-[#1c3d38] focus:ring-4 focus:ring-bg-[#1c3d38] font-medium rounded-lg text-sm px-4 lg:px-5 py-2 lg:py-2.5 mr-2"
             >
               Become a member
-            </a>
-          
+            </a> */}
 
             {/* Mobile Menu Sheet */}
             <div className="lg:hidden">
