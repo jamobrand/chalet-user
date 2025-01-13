@@ -4,8 +4,8 @@ import { API_URL } from '@/config';
 import { Chalet } from '../chalet-display-types';
 import { ImageSlider } from './image-slider';
 import { Link } from 'react-router-dom';
-import { BedDouble, Users } from 'lucide-react';
-import { calculateTotalCapacity, formatAvailabilityDate } from './types';
+import { BedDouble } from 'lucide-react';
+import { formatAvailabilityDate } from './types';
 
 interface ApiResponse {
   message: string;
@@ -91,9 +91,9 @@ const ChaletDisplay = () => {
 
                     <div className="space-y-1 text-sm text-gray-500">
                       <div className="flex items-center space-x-2">
-                        <Users className="w-4 h-4" />
-                        <span>{calculateTotalCapacity(chalet.rooms)} guests</span>
-                        <BedDouble className="w-4 h-4 ml-2" />
+                        {/* <Users className="w-4 h-4" />
+                        <span>{calculateTotalCapacity(chalet.rooms)} guests</span> */}
+                        <BedDouble className="w-4 h-4" />
                         <span>{chalet.roomCount} rooms</span>
                       </div>
                       <div className="flex flex-wrap gap-2">
@@ -116,7 +116,7 @@ const ChaletDisplay = () => {
                         <span className="text-gray-500 text-sm"> / night</span>
                       </div>
                       <span className="text-sm text-gray-500">
-                        {formatAvailabilityDate(chalet.ChaletUnavailableDates)}
+                        {formatAvailabilityDate(chalet.availabilityCalendar)}
                       </span>
                     </div>
                   </div>

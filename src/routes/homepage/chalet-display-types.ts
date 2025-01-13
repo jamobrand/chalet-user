@@ -21,6 +21,7 @@ export interface Chalet {
       name: string;
     }[];
     ChaletUnavailableDates:UnavailableDate[];
+    availabilityCalendar:AvailableData[];
     bookings: Booking[];
     rooms: {
       roomType: string;
@@ -34,6 +35,11 @@ export interface Chalet {
       ChaletAvailability: number;
       images: number;
     };
+  }
+
+  interface AvailableData {
+    date:string;
+    isAvailable: boolean;
   }
 
   export interface Amenity {

@@ -3,7 +3,6 @@ import {
   Facebook,
   Twitter,
   Instagram,
-  Youtube,
   Linkedin,
   Mail,
   Phone,
@@ -13,51 +12,49 @@ import {
 
 const Footer = () => {
   const companyLinks = [
-    { name: 'About Us', href: '#' },
-    { name: 'Our Services', href: '#' },
-    { name: 'Privacy Policy', href: '#' },
-    { name: 'Terms of Service', href: '#' },
-    { name: 'Careers', href: '#' },
+    { name: 'About Us', href: 'https://www.heritage-eastafrica.com/greatriftvalleylodgeandgolfresort/' },
+    { name: 'Our Services', href: 'https://www.heritage-eastafrica.com/greatriftvalleylodgeandgolfresort/' },
+    { name: 'Privacy Policy', href: 'https://www.heritage-eastafrica.com/greatriftvalleylodgeandgolfresort/hotel-gdpr' },
+    { name: 'Terms of Service', href: 'https://www.heritage-eastafrica.com/greatriftvalleylodgeandgolfresort/hotel-policies' },
   ];
 
   const supportLinks = [
     { name: 'FAQ', href: '#' },
-    { name: 'Help Center', href: '#' },
-    { name: 'Contact Us', href: '#' },
-    { name: 'Customer Support', href: '#' },
-    { name: 'Booking Guide', href: '#' },
+    { name: 'Help Center', href: 'https://www.heritage-eastafrica.com/greatriftvalleylodgeandgolfresort/hotel-contacts' },
+    { name: 'Contact Us', href: 'https://www.heritage-eastafrica.com/greatriftvalleylodgeandgolfresort/hotel-contacts' },
+    { name: 'Customer Support', href: 'https://www.heritage-eastafrica.com/greatriftvalleylodgeandgolfresort/hotel-contacts' },
   ];
 
-  const destinations = [
-    { name: 'Lake Nakuru', href: '#' },
-    { name: 'Masai Mara', href: '#' },
-    { name: 'Lake Naivasha', href: '#' },
-    { name: 'Hell\'s Gate', href: '#' },
-    { name: 'Mount Longonot', href: '#' },
-  ];
+  // const destinations = [
+  //   { name: 'Lake Nakuru', href: '#' },
+  //   { name: 'Masai Mara', href: '#' },
+  //   { name: 'Lake Naivasha', href: '#' },
+  //   { name: 'Hell\'s Gate', href: '#' },
+  //   { name: 'Mount Longonot', href: '#' },
+  // ];
 
   const socialLinks = [
-    { name: 'Facebook', icon: Facebook, href: '#' },
-    { name: 'Twitter', icon: Twitter, href: '#' },
-    { name: 'Instagram', icon: Instagram, href: '#' },
-    { name: 'YouTube', icon: Youtube, href: '#' },
-    { name: 'LinkedIn', icon: Linkedin, href: '#' },
+    { name: 'Facebook', icon: Facebook, href: 'https://www.facebook.com/GreatRiftValleyLodge/' },
+    { name: 'Twitter', icon: Twitter, href: 'https://x.com/RiftValleyLodge' },
+    { name: 'Instagram', icon: Instagram, href: 'https://www.instagram.com/greatriftvalleylodge/' },
+    // { name: 'YouTube', icon: Youtube, href: '#' },
+    { name: 'LinkedIn', icon: Linkedin, href: 'https://www.linkedin.com/company/heritage-hotels-ltd' },
   ];
 
   const contactInfo = [
-    { icon: Mail, text: 'info@riftvalleylodges.com' },
-    { icon: Phone, text: '+254 700 000 000' },
-    { icon: MapPin, text: 'Great Rift Valley, Kenya' },
+    { icon: Mail, text: 'info@riftvalley-resort.co.ke' },
+    { icon: Phone, text: '+254 711 019 900' },
+    { icon: MapPin, text: 'Naivasha, Kenya' },
   ];
 
   return (
     <footer className="bg-gray-900 text-gray-300">
       {/* Main Footer Content */}
       <div className="max-w-7xl mx-auto px-4 py-12 sm:px-6 lg:px-8">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-8">
+        <div className="grid grid-cols-4 md:grid-cols-4 lg:grid-cols-5 gap-8">
           {/* Company Info */}
-          <div className="lg:col-span-2">
-            <h3 className="text-2xl font-bold text-white mb-4">Rift Valley Lodges</h3>
+          <div className="lg:col-span-3">
+            <h3 className="text-2xl font-bold text-white mb-4">Great Rift Valley Lodge and Golf Resort</h3>
             <p className="text-gray-400 mb-6 max-w-md">
               Experience luxury accommodation in the heart of Kenya's Great Rift Valley. 
               Discover nature's beauty while enjoying world-class amenities and service.
@@ -109,7 +106,7 @@ const Footer = () => {
           </div>
 
           {/* Destinations */}
-          <div>
+          {/* <div>
             <h4 className="text-lg font-semibold text-white mb-4">Popular Destinations</h4>
             <ul className="space-y-2">
               {destinations.map((link, index) => (
@@ -124,7 +121,7 @@ const Footer = () => {
                 </li>
               ))}
             </ul>
-          </div>
+          </div> */}
         </div>
 
         {/* Newsletter Subscription */}
@@ -153,7 +150,7 @@ const Footer = () => {
           <div className="flex flex-col md:flex-row justify-between items-center gap-4">
             {/* Copyright */}
             <p className="text-gray-400">
-              © {new Date().getFullYear()} Rift Valley Lodges. All rights reserved.
+              © {new Date().getFullYear()} Great Rift Valley Lodge and Golf Resort. All rights reserved.
             </p>
 
             {/* Social Links */}
