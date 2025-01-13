@@ -1,60 +1,69 @@
-import { useEffect, useRef } from 'react';
-import { Location } from './view-chalet-types';
-import { GOOGLE_API_KEY } from '@/config';
+import { useEffect } from 'react';
+import L from 'leaflet';
+import 'leaflet/dist/leaflet.css';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+
+interface Location {
+  coordinates: {
+    lat: number;
+    lng: number;
+  };
+  locationName: string;
+  address: string;
+}
 
 interface LocationMapProps {
   location: Location;
 }
 
-declare global {
-  interface Window {
-    google: any;
-  }
-}
-
-export const LocationMap = ({ location }: LocationMapProps) => {
-  const mapRef = useRef<HTMLDivElement>(null);
+const LocationMap = ({ location }: LocationMapProps) => {
   const { coordinates, locationName, address } = location;
 
   useEffect(() => {
-    // Load Google Maps script
-    const script = document.createElement('script');
-    script.src = `https://maps.googleapis.com/maps/api/js?key=${GOOGLE_API_KEY}`;
-    script.async = true;
-    script.defer = true;
-    script.onload = initMap;
-    document.head.appendChild(script);
+    // Create map instance
+    const map = L.map('map').setView([coordinates.lat, coordinates.lng], 15);
 
+    // Add OpenStreetMap tile layer
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '© OpenStreetMap contributors',
+    }).addTo(map);
+
+    // Create custom marker icon
+    const customIcon = L.icon({
+      iconUrl: 'https://unpkg.com/leaflet@1.7.1/dist/images/marker-icon.png',
+      iconSize: [25, 41], // Default size
+      iconAnchor: [12.5, 41], // Center bottom anchor
+      popupAnchor: [0, -41], // Popup offset
+    });
+    
+
+    // Add marker with popup
+    L.marker([coordinates.lat, coordinates.lng], { icon: customIcon })
+      .addTo(map)
+      .bindPopup(locationName)
+      .openPopup();
+
+    // Cleanup function
     return () => {
-      document.head.removeChild(script);
+      map.remove();
     };
-  }, [coordinates]);
-
-  const initMap = () => {
-    if (mapRef.current && window.google) {
-      const map = new window.google.maps.Map(mapRef.current, {
-        center: coordinates,
-        zoom: 15,
-      });
-
-      new window.google.maps.Marker({
-        position: coordinates,
-        map,
-        title: locationName,
-      });
-    }
-  };
+  }, [coordinates, locationName]);
 
   return (
-    <div className="mt-4">
-      <div className="p-4">
-        <h3 className="text-lg font-semibold mb-2">Where you'll be</h3>
+    <Card className="mt-4">
+      <CardHeader>
+        <CardTitle className="text-lg">Where you'll be</CardTitle>
+      </CardHeader>
+      <CardContent>
         <p className="text-gray-600 mb-4">{address}</p>
-        <div 
-          ref={mapRef} 
-          className="w-full h-[400px] rounded-lg"
+        <div
+          id="map"
+          className="w-full h-96 rounded-lg border border-gray-200"
+          style={{ zIndex: 0 }} // Ensure proper stacking context
         />
-      </div>
-    </div>
+      </CardContent>
+    </Card>
   );
 };
+
+export default LocationMap;

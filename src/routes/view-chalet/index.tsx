@@ -8,7 +8,6 @@ import { ApiResponse } from './view-chalet-types';
 import { ImageGallery } from './image-gallery';
 import { AmenitiesList } from './amenities-list';
 import { BookingCalendar } from './booking-calendar';
-import { LocationMap } from './LocationMap';
 import ChaletBookingWidget from './booking-widget';
 import { Separator } from '@/components/ui/separator';
 import ChaletRules from './house-rules';
@@ -23,6 +22,7 @@ import {
   Bath,
 } from 'lucide-react';
 import ViewChaletDetailsSkeleton from './view-chalet-skeleton';
+import LocationMap from './LocationMap';
 
 const ViewChaletDetails = () => {
   const params = useParams();
