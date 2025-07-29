@@ -1,5 +1,11 @@
 # atomik-occ
 
+## 0.5.0
+
+### Minor Changes
+
+- setup the app user to function with the functions in backend
+
 ## 0.4.0
 
 ### Minor Changes
