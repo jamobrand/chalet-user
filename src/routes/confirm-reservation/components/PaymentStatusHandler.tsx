@@ -36,7 +36,7 @@ const PaymentSuccess = () => {
       }
       const result = await response.json();
 
-      console.log('PaymentStatusHandler query result:', result);
+      
       return result.data;
     },
     enabled: !!reservationRef,
@@ -52,7 +52,6 @@ const PaymentSuccess = () => {
     refetchIntervalInBackground: true,
   });
 
-  console.log('PaymentSuccess query data:', data);
 
   // Auto-verify payment on component mount
   useEffect(() => {
@@ -65,7 +64,7 @@ const PaymentSuccess = () => {
         const response = await fetch(`${API_URL}/v1/booking/verify`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ reservationReference: reservationRef }),
+       
         });
 
         console.log('Payment verification response:', response);
@@ -85,7 +84,6 @@ const PaymentSuccess = () => {
 
   // Handle successful booking confirmation
   useEffect(() => {
-    console.log('PaymentSuccess effect data:', data);
     if (data?.status === 'CONFIRMED' && data.reservation) {
       toast({
         title: 'Booking Confirmed!',

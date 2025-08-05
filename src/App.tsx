@@ -10,11 +10,11 @@ import HomePage from './routes/homepage';
 import ChaletSearchResults from './routes/chalet-search';
 import ViewChaletDetails from './routes/view-chalet';
 import ConfirmReservation from './routes/confirm-reservation';
-import BookedConfirmation from './routes/reservation';
 import BookingVerify from './routes/booking-verify';
 import PaymentSuccess from './routes/confirm-reservation/components/PaymentStatusHandler';
 import PaymentCancelled from './routes/confirm-reservation/components/PaymentCancelled';
 import PaymentError from './routes/confirm-reservation/components/PaymentError';
+import BookingConfirmation from './routes/reservation';
 
 const router = createBrowserRouter(
   createRoutesFromElements(
@@ -23,7 +23,7 @@ const router = createBrowserRouter(
       <Route path="/search" element={<ChaletSearchResults />} />
       <Route path="/chalets/:id" element={<ViewChaletDetails />} />
       <Route path="/reservation/:id" element={<ConfirmReservation />} />
-      <Route path="/reservation/confirmation" element={<BookedConfirmation />} />
+      <Route path="/reservation/confirmation" element={<BookingConfirmation />} />
       <Route path="/booking-verify" element={<BookingVerify />} />
 
       <Route path="/payment/success" element={<PaymentSuccess />} />

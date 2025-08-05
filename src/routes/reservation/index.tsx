@@ -1,5 +1,5 @@
 import { useLocation, useNavigate } from 'react-router-dom';
-import { format } from 'date-fns';
+import { differenceInDays, format } from 'date-fns';
 import {
   Check,
   Calendar,
@@ -9,233 +9,426 @@ import {
   Phone,
   CreditCard,
   MapPin,
+  CheckCircle,
+  Share2,
+  Clock,
+  Home,
+  Bed,
+  ExternalLink,
 } from 'lucide-react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Separator } from '@/components/ui/separator';
 import html2pdf from 'html2pdf.js';
 import { QRCodeSVG } from 'qrcode.react';
-import { LocationState } from './reserve-types';
-import { Button } from '@/components/ui/button';
-import GRVALLOGO from "../../assets/favicon.ico"
+import GRVALLOGO from '../../assets/favicon.ico';
+import { useEffect, useState } from 'react';
 
-const BookedConfirmation = () => {
+const BookingConfirmation = () => {
   const location = useLocation();
   const navigate = useNavigate();
-  const reservationData = (location.state as LocationState)?.reservation?.data;
+  const reservationData = location.state?.reservation;
+  const [isLoading, setIsLoading] = useState(false);
+  const [showSuccess, setShowSuccess] = useState(false);
+  const [showCopySuccess, setShowCopySuccess] = useState(false);
 
-  console.log("BookedConfirmation", location);
+  useEffect(() => {
+    setShowSuccess(true);
+  }, []);
+
+  console.log('BookedConfirmation', location);
   if (!reservationData) {
     navigate('/search');
     return null;
   }
 
-  const generatePDF = () => {
-    const element = document.getElementById('booking-confirmation');
-    const opt = {
-      margin: 1,
-      filename: `booking-${reservationData.id}.pdf`,
-      image: { type: 'jpeg', quality: 0.98 },
-      html2canvas: { scale: 2 },
-      jsPDF: { unit: 'in', format: 'a4', orientation: 'portrait' },
-    };
+  const generatePDF = async () => {
+    setIsLoading(true);
+    try {
+      const element = document.getElementById('booking-confirmation-print');
+      const opt = {
+        margin: 0.5,
+        filename: `booking-${reservationData.bookingReference}.pdf`,
+        image: { type: 'jpeg', quality: 0.98 },
+        html2canvas: {
+          scale: 2,
+          useCORS: true,
+          logging: false,
+          allowTaint: true, // Important for images
+        },
+        jsPDF: {
+          unit: 'in',
+          format: 'a4',
+          orientation: 'portrait',
+        },
+      };
+      await html2pdf().set(opt).from(element).save();
 
-    html2pdf().set(opt).from(element).save();
+      console.log('PDF generated successfully');
+    } catch (error) {
+      console.error('Error generating PDF:', error);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
-    // Create a proper URL for the QR code that includes all necessary booking details
-    const getBookingUrl = () => {
-      const baseUrl = window.location.origin;
-      const bookingData = {
-        id: reservationData.id,
-        chaletName: reservationData.chalet.name,
-        checkIn: reservationData.checkIn,
-        checkOut: reservationData.checkOut,
-        guest: `${reservationData.customer.firstName} ${reservationData.customer.lastName}`,
-      };
-      
-      // Create a URL-safe string of booking data
-      const params = new URLSearchParams({
-        booking: JSON.stringify(bookingData)
-      }).toString();
-      
-      return `${baseUrl}/booking-verify?${params}`;
+  // Create a proper URL for the QR code that includes all necessary booking details
+  const getBookingVerificationUrl = () => {
+    const baseUrl = window.location.origin;
+    const bookingData = {
+      id: reservationData.id,
+      reference: reservationData.bookingReference,
+      chaletName: reservationData.chalet.name,
+      checkIn: reservationData.checkIn,
+      checkOut: reservationData.checkOut,
+      guest: `${reservationData.customer.firstName} ${reservationData.customer.lastName}`,
+      status: reservationData.status,
     };
 
-  // const getQRCodeData = () => {
-  //   return JSON.stringify({
-  //     bookingId: reservationData.id,
-  //     chaletName: reservationData.chalet.name,
-  //     checkIn: reservationData.checkIn,
-  //     checkOut: reservationData.checkOut,
-  //     guestName: `${reservationData.customer.firstName} ${reservationData.customer.lastName}`,
-  //   });
-  // };
+    const params = new URLSearchParams({
+      booking: btoa(JSON.stringify(bookingData)), // Base64 encode for URL safety
+    }).toString();
 
-  // const shareBooking = async () => {
-  //   if (navigator.share) {
-  //     try {
-  //       await navigator.share({
-  //         title: 'Booking Confirmation',
-  //         text: `Booking confirmation for ${reservationData.chalet.name}`,
-  //         url: window.location.href,
-  //       });
-  //     } catch (error) {
-  //       console.error('Error sharing:', error);
-  //     }
-  //   }
-  // };
+    return `${baseUrl}/booking-verify?${params}`;
+  };
+
+  const shareBooking = async () => {
+    const shareData = {
+      title: 'Booking Confirmation',
+      text: `Booking confirmed for ${reservationData.chalet.name} - Reference: ${reservationData.bookingReference}`,
+      url: getBookingVerificationUrl(),
+    };
+
+    if (navigator.share && navigator.canShare && navigator.canShare(shareData)) {
+      try {
+        await navigator.share(shareData);
+      } catch (error) {
+        console.error('Error sharing:', error);
+        // Fallback to clipboard if share fails
+        fallbackToClipboard();
+      }
+    } else {
+      // Fallback: copy to clipboard
+      fallbackToClipboard();
+    }
+  };
+
+  const fallbackToClipboard = async () => {
+    try {
+      await navigator.clipboard.writeText(getBookingVerificationUrl());
+      // Better user feedback than alert
+      setShowCopySuccess(true);
+      setTimeout(() => setShowCopySuccess(false), 3000);
+    } catch (error) {
+      console.error('Failed to copy to clipboard:', error);
+      // Final fallback - show URL in a prompt
+      prompt('Copy this booking link:', getBookingVerificationUrl());
+    }
+  };
+
+  const checkInDate = new Date(reservationData.checkIn);
+  const checkOutDate = new Date(reservationData.checkOut);
+  const numberOfNights = differenceInDays(checkOutDate, checkInDate);
+  const totalAmount = Number(reservationData.totalCost);
 
   return (
-    <div className="min-h-screen bg-gray-50 py-12">
-      <div className="max-w-4xl mx-auto px-4" id="booking-confirmation">
-        <Card className="bg-white shadow-lg">
-          <CardHeader className="text-center border-b border-gray-200">
-             {/* Logo Section */}
-             <div className="flex justify-center mb-6">
-              <img
-                src={GRVALLOGO}
-                alt="Great Rift Valley Lodge and Golf Resort"
-                className="h-16 w-auto"
-              />
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
+      {/* Success Animation Overlay */}
+      {showSuccess && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/20 backdrop-blur-sm">
+          <div className="bg-white rounded-3xl p-8 shadow-2xl animate-in zoom-in duration-500">
+            <div className="text-center">
+              <div className="mx-auto w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mb-4 animate-in zoom-in duration-700 delay-200">
+                <CheckCircle className="w-8 h-8 text-green-600" />
+              </div>
+              <h2 className="text-2xl font-bold text-gray-900 mb-2">Booking Confirmed!</h2>
+              <p className="text-gray-600">Your reservation has been successfully processed</p>
+              <button
+                onClick={() => setShowSuccess(false)}
+                className="mt-6 px-6 py-2 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-colors"
+              >
+                View Details
+              </button>
             </div>
+          </div>
+        </div>
+      )}
 
-            <div className="mx-auto w-12 h-12 bg-green-100 rounded-full flex items-center justify-center mb-4">
-              <Check className="w-6 h-6 text-green-600" />
-            </div>
-            <CardTitle className="text-2xl font-bold text-gray-900">Booking Confirmed!</CardTitle>
-            <p className="text-gray-600 mt-2">Booking Reference: {reservationData.id}</p>
-            <div className="flex justify-center space-x-4 mt-4">
-              <Button variant="outline" onClick={generatePDF}>
-                <Download className="w-4 h-4 mr-2" />
-                Download PDF
-              </Button>
-              {/* <Button variant="outline" onClick={shareBooking}>
-                <Share2 className="w-4 h-4 mr-2" />
-                Share
-              </Button> */}
-            </div>
-          </CardHeader>
+      {/* Copy Success Notification */}
+      {showCopySuccess && (
+        <div className="fixed top-4 right-4 z-40 bg-green-600 text-white px-4 py-2 rounded-lg shadow-lg">
+          Booking link copied to clipboard!
+        </div>
+      )}
 
-          <CardContent className="p-6 space-y-6">
-            
+      <div className="max-w-4xl mx-auto px-4 py-8">
+        {/* Header Section */}
+        <div className="text-center mb-8">
+          <div className="inline-flex items-center justify-center w-20 h-20 bg-gradient-to-r from-green-500 to-emerald-500 rounded-full mb-6 shadow-lg">
+            <Check className="w-10 h-10 text-white" />
+          </div>
+          <h1 className="text-4xl font-bold text-gray-900 mb-2">Booking Confirmed</h1>
+          <p className="text-xl text-gray-600 mb-1">
+            Reference: {reservationData.bookingReference}
+          </p>
+          <p className="text-sm text-gray-500">Confirmation ID: {reservationData.id}</p>
+
+          {/* Action Buttons */}
+          <div className="flex flex-wrap justify-center gap-3 mt-6">
+            <button
+              onClick={generatePDF}
+              disabled={isLoading}
+              className="inline-flex items-center px-6 py-3 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-all duration-200 shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <Download className="w-4 h-4 mr-2" />
+              {isLoading ? 'Generating...' : 'Download PDF'}
+            </button>
+            <button
+              onClick={shareBooking}
+              className="inline-flex items-center px-6 py-3 bg-gray-100 text-gray-700 rounded-xl hover:bg-gray-200 transition-all duration-200 shadow-lg hover:shadow-xl"
+            >
+              <Share2 className="w-4 h-4 mr-2" />
+              Share
+            </button>
+          </div>
+        </div>
+
+        {/* Main Content */}
+        <div
+          id="booking-confirmation-print"
+          className="bg-white rounded-3xl shadow-xl overflow-hidden"
+        >
+          {/* PDF Header with Logo - Only visible in PDF */}
+          <div className="print:block hidden bg-white p-6 border-b border-gray-200">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-4">
+                <img
+                  src={GRVALLOGO}
+                  alt="Great Rift Valley Lodge & Golf Resort"
+                  className="w-16 h-16 object-contain"
+                  crossOrigin="anonymous"
+                />
+                <div>
+                  <h1 className="text-2xl font-bold text-gray-900">
+                    Great Rift Valley Lodge & Golf Resort
+                  </h1>
+                  <p className="text-gray-600">Booking Confirmation</p>
+                </div>
+              </div>
+              <div className="text-right">
+                <p className="text-sm text-gray-500">Generated on:</p>
+                <p className="font-medium">{format(new Date(), 'MMM dd, yyyy')}</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Property Hero */}
+          <div className="relative bg-gradient-to-r from-blue-600 to-purple-600 p-8 text-white">
+            <div className="absolute inset-0 bg-black/10"></div>
+            <div className="relative">
+              <div className="flex items-start justify-between">
+                <div>
+                  <h2 className="text-3xl font-bold mb-2">{reservationData.chalet.name}</h2>
+                  <p className="text-blue-100 mb-1">{reservationData.chalet.propertyType}</p>
+                  <div className="flex items-center text-blue-100">
+                    <MapPin className="w-4 h-4 mr-2" />
+                    {reservationData.chalet.address}
+                  </div>
+                </div>
+                <div className="text-right">
+                  <div className="text-2xl font-bold">KES {totalAmount.toLocaleString()}</div>
+                  <div className="text-blue-100">
+                    {numberOfNights} night{numberOfNights > 1 ? 's' : ''}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="p-8 space-y-8">
+            {/* Stay Details */}
+            <div className="grid md:grid-cols-3 gap-6">
+              <div className="flex items-center space-x-4 p-4 bg-gray-50 rounded-2xl">
+                <div className="flex-shrink-0">
+                  <Calendar className="w-8 h-8 text-blue-600" />
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-gray-500 uppercase tracking-wide">
+                    Check-in
+                  </p>
+                  <p className="text-lg font-semibold text-gray-900">
+                    {format(checkInDate, 'MMM dd, yyyy')}
+                  </p>
+                  <p className="text-sm text-gray-600">{format(checkInDate, 'EEEE')}</p>
+                </div>
+              </div>
+
+              <div className="flex items-center space-x-4 p-4 bg-gray-50 rounded-2xl">
+                <div className="flex-shrink-0">
+                  <Clock className="w-8 h-8 text-purple-600" />
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-gray-500 uppercase tracking-wide">
+                    Duration
+                  </p>
+                  <p className="text-lg font-semibold text-gray-900">
+                    {numberOfNights} Night{numberOfNights > 1 ? 's' : ''}
+                  </p>
+                  <p className="text-sm text-gray-600">{format(checkOutDate, 'MMM dd')}</p>
+                </div>
+              </div>
+
+              <div className="flex items-center space-x-4 p-4 bg-gray-50 rounded-2xl">
+                <div className="flex-shrink-0">
+                  <Users className="w-8 h-8 text-green-600" />
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-gray-500 uppercase tracking-wide">
+                    Guests
+                  </p>
+                  <p className="text-lg font-semibold text-gray-900">
+                    {reservationData.totalGuests} Guest{reservationData.totalGuests > 1 ? 's' : ''}
+                  </p>
+                  <p className="text-sm text-gray-600">
+                    {reservationData.numberOfAdults} Adult
+                    {reservationData.numberOfAdults > 1 ? 's' : ''},{' '}
+                    {reservationData.numberOfChildren} Child
+                    {reservationData.numberOfChildren !== 1 ? 'ren' : ''}
+                  </p>
+                </div>
+              </div>
+            </div>
 
             {/* Property Details */}
-            <div className="space-y-4">
-              <h3 className="font-semibold text-lg">{reservationData.chalet.name}</h3>
-              <p className="text-gray-600">{reservationData.chalet.type}</p>
-              <div className="flex items-center text-gray-600">
-                <MapPin className="w-4 h-4 mr-2" />
-                {reservationData.chalet.address}
-              </div>
-              {/* <p className="text-sm text-gray-600">{reservationData.chalet.description}</p> */}
-            </div>
-
-            <Separator />
-
-            {/* Stay Details */}
-            <div className="grid md:grid-cols-2 gap-4">
-              <div className="flex items-center space-x-3">
-                <Calendar className="w-5 h-5 text-gray-400" />
-                <div>
-                  <p className="text-sm text-gray-600">Check-in</p>
-                  <p className="font-medium">{format(new Date(reservationData.checkIn), 'PPP')}</p>
-                </div>
-              </div>
-              <div className="flex items-center space-x-3">
-                <Calendar className="w-5 h-5 text-gray-400" />
-                <div>
-                  <p className="text-sm text-gray-600">Check-out</p>
-                  <p className="font-medium">{format(new Date(reservationData.checkOut), 'PPP')}</p>
-                </div>
-              </div>
-            </div>
-
-            {/* Guest Details */}
-            <div className="space-y-4">
-              <h4 className="font-semibold">Guest Information</h4>
+            <div className="bg-gradient-to-r from-gray-50 to-blue-50 rounded-2xl p-6">
+              <h3 className="text-xl font-bold text-gray-900 mb-4 flex items-center">
+                <Home className="w-6 h-6 mr-2 text-blue-600" />
+                Property Details
+              </h3>
               <div className="grid md:grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <p className="text-gray-600">
-                    <Users className="w-4 h-4 inline mr-2" />
-                    {reservationData.numberOfAdults} Adults, {reservationData.numberOfChildren}{' '}
-                    Children
-                  </p>
-                  <p className="text-gray-600">
-                    <Mail className="w-4 h-4 inline mr-2" />
-                    {reservationData.customer.email}
-                  </p>
+                  <div className="flex items-center text-gray-700">
+                    <Bed className="w-4 h-4 mr-2" />
+                    Sleeps up to {reservationData.chalet.totalSleeps}
+                  </div>
+                  <div className="flex items-center text-gray-700">
+                    <Home className="w-4 h-4 mr-2" />
+                    {reservationData.chalet.propertyType}
+                  </div>
                 </div>
                 <div className="space-y-2">
-                  <p className="text-gray-600">
-                    <Phone className="w-4 h-4 inline mr-2" />
-                    {reservationData.customer.phone}
-                  </p>
-                  <p className="text-gray-600">
-                    Nationality: {reservationData.customer.nationality}
-                  </p>
+                  <div className="text-gray-700">
+                    Base Price: KES {Number(reservationData.chalet.basePrice).toLocaleString()}
+                  </div>
+                  <div className="text-gray-700">
+                    Location: {reservationData.chalet.locationName}
+                  </div>
                 </div>
               </div>
             </div>
 
-            <Separator />
+            {/* Guest Information */}
+            <div className="bg-gradient-to-r from-purple-50 to-pink-50 rounded-2xl p-6">
+              <h3 className="text-xl font-bold text-gray-900 mb-4">Guest Information</h3>
+              <div className="grid md:grid-cols-2 gap-6">
+                <div className="space-y-3">
+                  <div className="flex items-center text-gray-700">
+                    <Users className="w-5 h-5 mr-3 text-purple-600" />
+                    <span className="font-medium">
+                      {reservationData.customer.firstName} {reservationData.customer.lastName}
+                    </span>
+                  </div>
+                  <div className="flex items-center text-gray-700">
+                    <Mail className="w-5 h-5 mr-3 text-purple-600" />
+                    {reservationData.customer.email}
+                  </div>
+                </div>
+                <div className="space-y-3">
+                  <div className="flex items-center text-gray-700">
+                    <Phone className="w-5 h-5 mr-3 text-purple-600" />
+                    {reservationData.customer.phone}
+                  </div>
+                  <div className="flex items-center text-gray-700">
+                    <span className="w-5 h-5 mr-3 text-purple-600 font-bold text-sm">ID</span>
+                    {reservationData.customer.nationality} -{' '}
+                    {reservationData.customer.passportNumber}
+                  </div>
+                </div>
+              </div>
+            </div>
 
-            {/* Payment Details */}
-            <div>
-              <h4 className="font-semibold mb-4">Payment Details</h4>
-              <div className="space-y-2">
-                <div className="flex justify-between text-gray-600">
-                  <span>Payment Status</span>
-                  <span className="font-medium">
+            {/* Payment Summary */}
+            <div className="bg-gradient-to-r from-green-50 to-emerald-50 rounded-2xl p-6">
+              <h3 className="text-xl font-bold text-gray-900 mb-4 flex items-center">
+                <CreditCard className="w-6 h-6 mr-2 text-green-600" />
+                Payment Summary
+              </h3>
+              <div className="space-y-4">
+                <div className="flex justify-between items-center py-2 border-b border-green-200">
+                  <span className="text-gray-600">Payment Status</span>
+                  <span className="font-semibold text-green-600 flex items-center">
+                    <CheckCircle className="w-4 h-4 mr-1" />
                     {reservationData.payments[0]?.status.replace('_', ' ')}
                   </span>
                 </div>
-                <div className="flex justify-between text-gray-600">
-                  <span>Payment Method</span>
-                  <span className="flex items-center">
-                    <CreditCard className="w-4 h-4 mr-2" />
+                <div className="flex justify-between items-center py-2 border-b border-green-200">
+                  <span className="text-gray-600">Payment Method</span>
+                  <span className="font-medium">
                     {reservationData.payments[0]?.method.replace('_', ' ')}
                   </span>
                 </div>
-                <div className="flex justify-between text-gray-600">
-                  <span>Total Amount</span>
-                  <span className="font-medium">
-                    KES{' '}
-                    {Number(reservationData.totalCost).toLocaleString('en-US', {
-                      minimumFractionDigits: 2,
-                      maximumFractionDigits: 2,
-                    })}
+                <div className="flex justify-between items-center py-2 border-b border-green-200">
+                  <span className="text-gray-600">Transaction ID</span>
+                  <span className="font-mono text-sm">
+                    {reservationData.payments[0]?.transactionId}
+                  </span>
+                </div>
+                <div className="flex justify-between items-center py-2 pt-4">
+                  <span className="text-xl font-bold text-gray-900">Total Amount</span>
+                  <span className="text-2xl font-bold text-green-600">
+                    KES {totalAmount.toLocaleString()}
                   </span>
                 </div>
               </div>
             </div>
-            <Separator />
-              {/* QR Code Section */}
-              <div className="flex justify-center">
-              <div className="p-4 bg-white rounded-lg shadow-sm">
-                {/* <div style={{ background: 'white', padding: '16px' }}>
-                  <QRCodeSVG value={getQRCodeData()} size={256} level="H" />
-                </div> */}
 
-                <div style={{ background: 'white', padding: '16px' }}>
-                  <QRCodeSVG 
-                    value={getBookingUrl()} 
-                    size={256} 
-                    level="H"
-                  />
-                </div>
-
-                <p className="text-sm text-gray-500 text-center mt-2">
-                  Scan to view booking details
+            {/* QR Code Section */}
+            <div className="text-center py-8">
+              <h3 className="text-xl font-bold text-gray-900 mb-6">Digital Verification</h3>
+              <div className="inline-block p-6 bg-white rounded-2xl shadow-lg border-2 border-dashed border-gray-200">
+                <QRCodeSVG value={getBookingVerificationUrl()} size={200} />
+                <p className="text-sm text-gray-500 mt-4 max-w-xs">
+                  Scan this QR code to verify your booking from any device
                 </p>
+                <button
+                  onClick={() => window.open(getBookingVerificationUrl(), '_blank')}
+                  className="mt-3 inline-flex items-center text-blue-600 hover:text-blue-700 text-sm font-medium print:hidden"
+                >
+                  <ExternalLink className="w-4 h-4 mr-1" />
+                  Open verification link
+                </button>
               </div>
             </div>
-          </CardContent>
-        </Card>
 
-        {/* Help Section */}
-        <div className="mt-8 text-center">
-          <p className="text-gray-600">
-            Need help with your booking?{' '}
+            {/* PDF Footer with Logo */}
+            <div className="print:block hidden border-t border-gray-200 pt-6 mt-8">
+              <div className="flex items-center justify-between text-sm text-gray-500">
+                <div className="flex items-center space-x-2">
+                  <img
+                    src={GRVALLOGO}
+                    alt="GRVAL Logo"
+                    className="w-6 h-6 object-contain"
+                    crossOrigin="anonymous"
+                  />
+                  <span>Great Rift Valley Lodge & Golf Resort</span>
+                </div>
+                <span>Booking Reference: {reservationData.bookingReference}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Footer Help Section */}
+        <div className="text-center mt-8 p-6 bg-white/70 backdrop-blur-sm rounded-2xl print:hidden">
+          <p className="text-gray-600 mb-4">Need assistance with your booking?</p>
+          <div className="flex flex-wrap justify-center gap-4">
             <button
               onClick={() =>
                 window.open(
@@ -243,15 +436,28 @@ const BookedConfirmation = () => {
                   '_blank',
                 )
               }
-              className="text-primary-600 hover:underline"
+              className="inline-flex items-center px-4 py-2 text-blue-600 hover:text-blue-700 font-medium"
             >
-              Contact us
+              <Phone className="w-4 h-4 mr-2" />
+              Contact Resort
             </button>
-          </p>
+            <button
+              onClick={() =>
+                window.open(
+                  `mailto:support@example.com?subject=Booking ${reservationData.bookingReference}`,
+                  '_blank',
+                )
+              }
+              className="inline-flex items-center px-4 py-2 text-blue-600 hover:text-blue-700 font-medium"
+            >
+              <Mail className="w-4 h-4 mr-2" />
+              Email Support
+            </button>
+          </div>
         </div>
       </div>
     </div>
   );
 };
 
-export default BookedConfirmation;
+export default BookingConfirmation;
