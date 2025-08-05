@@ -43,6 +43,20 @@ const BookingConfirmation = () => {
     setIsLoading(true);
     try {
       const element = document.getElementById('booking-confirmation-print');
+      if (!element) return;
+
+      // Wait for images to load before generating PDF
+      const images = element?.querySelectorAll('img');
+      await Promise.all(
+        Array.from(images).map((img) => {
+          if (img.complete) return Promise.resolve();
+          return new Promise((resolve) => {
+            img.onload = resolve;
+            img.onerror = resolve;
+          });
+        }),
+      );
+
       const opt = {
         margin: 0.5,
         filename: `booking-${reservationData.bookingReference}.pdf`,
@@ -50,8 +64,10 @@ const BookingConfirmation = () => {
         html2canvas: {
           scale: 2,
           useCORS: true,
+          allowTaint: true,
           logging: false,
-          allowTaint: true, // Important for images
+          backgroundColor: '#ffffff',
+          foreignObjectRendering: true,
         },
         jsPDF: {
           unit: 'in',
@@ -82,8 +98,14 @@ const BookingConfirmation = () => {
       status: reservationData.status,
     };
 
+    // Use URL-safe Base64 encoding and proper URL encoding
+    const encodedData = btoa(JSON.stringify(bookingData))
+      .replace(/\+/g, '-')
+      .replace(/\//g, '_')
+      .replace(/=/g, '');
+
     const params = new URLSearchParams({
-      booking: btoa(JSON.stringify(bookingData)), // Base64 encode for URL safety
+      booking: encodedData,
     }).toString();
 
     return `${baseUrl}/booking-verify?${params}`;
@@ -161,6 +183,20 @@ const BookingConfirmation = () => {
       <div className="max-w-4xl mx-auto px-4 py-8">
         {/* Header Section */}
         <div className="text-center mb-8">
+          {/* Add logo to main page */}
+          <div className="flex items-center justify-center mb-4">
+            <img
+              src={GRVALLOGO}
+              alt="Great Rift Valley Lodge & Golf Resort"
+              className="w-16 h-16 object-contain mr-3"
+              crossOrigin="anonymous"
+            />
+            <div className="text-left">
+              <h2 className="text-lg font-semibold text-gray-900">Great Rift Valley Lodge</h2>
+              <p className="text-sm text-gray-600">& Golf Resort</p>
+            </div>
+          </div>
+
           <div className="inline-flex items-center justify-center w-20 h-20 bg-gradient-to-r from-green-500 to-emerald-500 rounded-full mb-6 shadow-lg">
             <Check className="w-10 h-10 text-white" />
           </div>
@@ -390,13 +426,23 @@ const BookingConfirmation = () => {
             </div>
 
             {/* QR Code Section */}
-            <div className="text-center py-8">
+            <div className="text-center py-8 break-inside-avoid">
               <h3 className="text-xl font-bold text-gray-900 mb-6">Digital Verification</h3>
               <div className="inline-block p-6 bg-white rounded-2xl shadow-lg border-2 border-dashed border-gray-200">
-                <QRCodeSVG value={getBookingVerificationUrl()} size={200} />
+                <div className="qr-code-container">
+                  <QRCodeSVG
+                    value={getBookingVerificationUrl()}
+                    size={200}
+                    level="M"
+                    includeMargin={true}
+                  />
+                </div>
                 <p className="text-sm text-gray-500 mt-4 max-w-xs">
                   Scan this QR code to verify your booking from any device
                 </p>
+                <div className="print:block hidden mt-2 text-xs text-gray-400 break-all">
+                  {getBookingVerificationUrl()}
+                </div>
                 <button
                   onClick={() => window.open(getBookingVerificationUrl(), '_blank')}
                   className="mt-3 inline-flex items-center text-blue-600 hover:text-blue-700 text-sm font-medium print:hidden"

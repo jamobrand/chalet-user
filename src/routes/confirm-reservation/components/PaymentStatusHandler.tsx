@@ -67,8 +67,6 @@ const PaymentSuccess = () => {
        
         });
 
-        console.log('Payment verification response:', response);
-
         if (response.ok) {
           // Payment verified successfully, refetch status
           setTimeout(() => refetch(), 1000);
