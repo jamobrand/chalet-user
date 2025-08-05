@@ -64,6 +64,8 @@ const PaymentSuccess = () => {
           body: JSON.stringify({ reservationReference: reservationRef }),
         });
 
+        console.log('Payment verification response:', response);
+
         if (response.ok) {
           // Payment verified successfully, refetch status
           setTimeout(() => refetch(), 1000);
@@ -79,6 +81,7 @@ const PaymentSuccess = () => {
 
   // Handle successful booking confirmation
   useEffect(() => {
+    console.log('PaymentSuccess effect data:', data);
     if (data?.status === 'CONFIRMED' && data.reservation) {
       toast({
         title: 'Booking Confirmed!',
