@@ -229,7 +229,7 @@ const BookingConfirmation = () => {
           className="bg-white rounded-3xl shadow-xl overflow-hidden print:shadow-none print:rounded-none"
         >
           {/* PDF Header with Logo - Only visible in PDF */}
-          <div className="print:block hidden bg-white p-6 border-b border-gray-200 page-break-inside-avoid">
+          <div className="bg-white p-6 border-b border-gray-200 page-break-inside-avoid">
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-4">
                 <img
