@@ -27,7 +27,7 @@ const PaymentSuccess = () => {
     queryFn: async (): Promise<PaymentStatusResponse> => {
       if (!reservationRef) throw new Error('No reservation reference provided');
 
-      const response = await fetch(`${API_URL}/v1/booking/status/${reservationRef}`);
+      const response = await fetch(`${API_URL}/v1/booking/status/reservation/reference/${reservationRef}`);
       if (!response.ok) {
         throw new Error('Failed to check reservation status');
       }
