@@ -22,25 +22,27 @@ const PaymentSuccess = () => {
   const reservationRef = searchParams.get('ref');
 
   // Query to check reservation status
-  const { data, isLoading, error, refetch } = useQuery({
-    queryKey: ['reservation-status', reservationRef],
-    queryFn: async (): Promise<PaymentStatusResponse> => {
-      if (!reservationRef) throw new Error('No reservation reference provided');
+// In PaymentSuccess.tsx, replace the query configuration:
+const { data, isLoading, error, refetch } = useQuery({
+  queryKey: ['reservation-status', reservationRef],
+  queryFn: async (): Promise<PaymentStatusResponse> => {
+    if (!reservationRef) throw new Error('No reservation reference provided');
 
-      const response = await fetch(`${API_URL}/v1/booking/status/reservation/reference/${reservationRef}`);
-      if (!response.ok) {
-        throw new Error('Failed to check reservation status');
-      }
-      const result = await response.json();
-      return result.data;
-    },
-    enabled: !!reservationRef,
-    // refetchInterval: (data) => {
-    //   // Stop refetching if reservation is confirmed or not found
-    //   return data?.status === 'PENDING' ? 3000 : false;
-    // },
-    refetchIntervalInBackground: true,
-  });
+    const response = await fetch(`${API_URL}/v1/booking/status/reservation/reference/${reservationRef}`);
+    if (!response.ok) {
+      throw new Error('Failed to check reservation status');
+    }
+    const result = await response.json();
+    return result.data;
+  },
+  enabled: !!reservationRef,
+  // FIX: Use query data instead of query object
+  refetchInterval: (query) => {
+    // query.state.data contains the actual response data
+    return query.state.data?.status === 'PENDING' ? 3000 : false;
+  },
+  refetchIntervalInBackground: true,
+});
 
   // Auto-verify payment on component mount
   useEffect(() => {
