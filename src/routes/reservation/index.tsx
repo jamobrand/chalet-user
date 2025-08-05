@@ -226,7 +226,7 @@ const BookingConfirmation = () => {
         {/* Main Content */}
         <div
           id="booking-confirmation-print"
-          className="bg-white rounded-3xl shadow-xl overflow-hidden print:shadow-none print:rounded-none"
+          className="bg-white rounded-3xl shadow-xl overflow-hidden border border-gray-200"
         >
           {/* PDF Header with Logo - Only visible in PDF */}
           <div className="bg-white p-6 border-b border-gray-200 page-break-inside-avoid">
