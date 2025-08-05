@@ -36,7 +36,6 @@ const PaymentSuccess = () => {
       }
       const result = await response.json();
 
-      
       return result.data;
     },
     enabled: !!reservationRef,
@@ -52,7 +51,6 @@ const PaymentSuccess = () => {
     refetchIntervalInBackground: true,
   });
 
-
   // Auto-verify payment on component mount
   useEffect(() => {
     const verifyPayment = async () => {
@@ -64,7 +62,7 @@ const PaymentSuccess = () => {
         const response = await fetch(`${API_URL}/v1/booking/verify`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-       
+          body: JSON.stringify({ reservationReference: reservationRef }),
         });
 
         if (response.ok) {
