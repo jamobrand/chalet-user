@@ -1,79 +1,50 @@
-import { differenceInDays, format } from 'date-fns';
-import { useLocation, useNavigate } from 'react-router-dom';
-import { ChevronRight, Lock, Calendar, Users, Loader2 } from 'lucide-react';
-import { Label } from '@/components/ui/label';
-import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Calendar, ChevronRight, Loader2, Users, Lock } from 'lucide-react';
 import { useState } from 'react';
-import { API_URL, PAYSTACK_PUBLIC_KEY } from '@/config';
-import { usePaystackPayment } from 'react-paystack';
-import { Separator } from '@/components/ui/separator';
 import { Helmet } from 'react-helmet-async';
-import { useMutation, useQuery } from '@tanstack/react-query';
-import { useToast } from '@/hooks/use-toast';
-import axios from 'axios';
-import { ApiAddonResponse, ReservationData } from './types';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { AddonSelector, SelectedAddons } from './addon-selector';
+import { useMutation, useQuery } from '@tanstack/react-query';
+import axios from 'axios';
+import { ApiAddonResponse, CreatePaymentTokenRequest, CreatePaymentTokenResponse } from './types';
+import { Separator } from '@/components/ui/separator';
+import { differenceInDays, format } from 'date-fns';
 import { PriceBreakdown } from './PriceBreakdown';
+import { API_URL } from '@/config';
+import { useToast } from '@/hooks/use-toast';
 
-interface ReferenceData {
-  message: string;
-  redirecturl: string;
-  reference: string;
-  return?: string;
-  status: string;
-  trans: string;
-  transaction: string;
-  trxref: string;
+interface ErrorMessage {
+  message:string;
+  error: string;
 }
 
-// Mutation function
-const createReservation = async (reservationData: ReservationData) => {
-  const response = await fetch(`${API_URL}/v1/chalets/booking/reserve-chalet`, {
+// Mutation function for creating payment token
+const createPaymentToken = async (
+  tokenData: CreatePaymentTokenRequest,
+): Promise<CreatePaymentTokenResponse> => {
+  const response = await fetch(`${API_URL}/v1/booking/create-token`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(reservationData),
+    body: JSON.stringify(tokenData),
   });
 
   if (!response.ok) {
-    throw new Error('Failed to create reservation');
+    const errorData:ErrorMessage = await response.json();
+    throw new Error(errorData.error || 'Failed to create payment token');
   }
 
-  return response.json();
+  const result = await response.json();
+  return result.data;
 };
+
 
 const ConfirmReservation = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const { toast } = useToast();
   const [isProcessing, setIsProcessing] = useState(false);
-
-  const { data, isLoading } = useQuery({
-    queryKey: ['addons'],
-    queryFn: async () => {
-      const response = await axios.get<ApiAddonResponse>(`${API_URL}/v1/addons/all-addons`);
-      return response.data.addons;
-    },
-  });
-
-  const [selectedAddons, setSelectedAddons] = useState<SelectedAddons>({});
-
-  // Add this function in ConfirmReservation
-  const handleAddonChange = (addonId: string, isSelected: boolean) => {
-    setSelectedAddons((prev) => ({
-      ...prev,
-      [addonId]: isSelected,
-    }));
-  };
-
-  // Calculate addons total (add this before finalAmount calculation)
-  const addonsTotal =
-    data?.reduce((total, addon) => {
-      return total + (selectedAddons[addon.id] ? parseInt(addon.price) : 0);
-    }, 0) ?? 0;
-
-  const { chalet, checkIn, checkOut, adults, children, selectedDates } = location.state || {};
-
   const [customer, setCustomer] = useState({
     firstName: '',
     lastName: '',
@@ -83,103 +54,90 @@ const ConfirmReservation = () => {
     nationality: '',
     nationalIdNumber: '',
   });
+  const [selectedAddons, setSelectedAddons] = useState<SelectedAddons>({});
+
+  const { chalet, checkIn, checkOut, adults, children, selectedDates } = location.state || {};
+
+  const { data, isLoading } = useQuery({
+    queryKey: ['addons'],
+    queryFn: async () => {
+      const response = await axios.get<ApiAddonResponse>(`${API_URL}/v1/addons/all-addons`);
+      return response.data.addons;
+    },
+  });
+
+  // Add this function in ConfirmReservation
+  const handleAddonChange = (addonId: string, isSelected: boolean) => {
+    setSelectedAddons((prev) => ({
+      ...prev,
+      [addonId]: isSelected,
+    }));
+  };
+
+  // Calculate addons total
+  const addonsTotal =
+    data?.reduce((total, addon) => {
+      return total + (selectedAddons[addon.id] ? parseInt(addon.price) : 0);
+    }, 0) ?? 0;
 
   const totalNights = differenceInDays(new Date(checkOut), new Date(checkIn));
   const totalAmount = parseFloat(chalet.price) * totalNights;
   const taxAmount = totalAmount * 0.16; // 16% tax
-  // const finalAmount = totalAmount + taxAmount;
-
-  // Update finalAmount calculation
   const finalAmount = totalAmount + taxAmount + addonsTotal;
 
   const mutation = useMutation({
-    mutationFn: createReservation,
+    mutationFn: createPaymentToken,
     onSuccess: (data) => {
-      toast({
-        title: 'Booking Confirmed!',
-        description:
-          'Your reservation has been successfully confirmed. Check your email for details.',
-        variant: 'success',
-      });
+      // Store reservation reference in localStorage for return handling
+      localStorage.setItem('currentReservationRef', data.reservationReference);
 
-      navigate('/reservation/confirmation', {
-        state: {
-          reservation: data,
-        },
-      });
+      // Redirect to DPO payment page
+      window.location.href = data.paymentUrl;
     },
     onError: (error: Error) => {
       toast({
-        title: 'Booking Failed',
-        description: error.message || 'Unable to complete your reservation. Please try again.',
+        title: 'Payment Token Creation Failed',
+        description: error.message || 'Unable to create payment token. Please try again.',
         variant: 'destructive',
       });
       setIsProcessing(false);
     },
   });
 
-  const onSuccess = async (reference: ReferenceData) => {
-    setIsProcessing(true); // Start loading
-    try {
-      const reservationData = {
-        customerId: null,
-        chaletId: chalet.id,
-        checkIn,
-        checkOut,
-        selectedDates,
-        adults,
-        children,
-        totalCost: finalAmount,
-        status: 'CONFIRMED',
-        paymentStatus: 'PAID',
-        customer,
-        addons: Object.keys(selectedAddons)
-          .filter((id) => selectedAddons[id])
-          .map((id) => ({
-            addonId: id,
-            quantity: 1,
-            price: data?.find((addon) => addon.id === id)?.price ?? 0,
-          })),
-        payment: {
-          amount: finalAmount,
-          paymentMethod: 'PAYSTACK',
-          transactionId: reference.reference,
-          status: 'PAID',
-        },
-      };
-
-      mutation.mutate(reservationData);
-    } catch (error) {
-      console.error('Reservation failed:', error);
-      setIsProcessing(false); // Reset loading on error
-    }
-  };
-
-  const onClose = () => {
-    console.log('Payment canceled');
-    setIsProcessing(false); // Reset loading if payment is cancelled
-  };
-
-  const config = {
-    reference: new Date().getTime().toString(),
-    email: customer.email,
-    amount: finalAmount * 100,
-    publicKey: `${PAYSTACK_PUBLIC_KEY}`,
-    currency: 'KES',
-    // onClose   // Add callback here
-  };
-
-  const initializePayment = usePaystackPayment(config);
-
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    setIsProcessing(true);
 
     if (!customer.email) {
-      console.error('Customer email is required');
+      toast({
+        title: 'Validation Error',
+        description: 'Customer email is required',
+        variant: 'destructive',
+      });
+      setIsProcessing(false);
       return;
     }
 
-    initializePayment({ onSuccess, onClose });
+    const tokenData: CreatePaymentTokenRequest = {
+      chaletId: chalet.id,
+      checkIn,
+      checkOut,
+      adults,
+      children,
+      totalCost: finalAmount,
+      selectedDates,
+      customer,
+      addons: Object.keys(selectedAddons)
+        .filter((id) => selectedAddons[id])
+        .map((id) => ({
+          addonId: id,
+          quantity: 1,
+          price: parseInt(data?.find((addon) => addon.id === id)?.price ?? '0'),
+        })),
+    };
+
+    console.log('Payment Token Data:', tokenData);
+    mutation.mutate(tokenData);
   };
 
   if (!chalet) {
@@ -332,7 +290,7 @@ const ConfirmReservation = () => {
                   {isProcessing ? (
                     <>
                       <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                      Processing your reservation...
+                      Creating payment token...
                     </>
                   ) : (
                     <>
@@ -394,53 +352,6 @@ const ConfirmReservation = () => {
                   <Separator />
 
                   {/* Price Breakdown */}
-                  {/* <div className="space-y-3">
-                    <div className="flex justify-between">
-                      <span className="text-gray-600">
-                        KES {parseInt(chalet.price).toLocaleString()} x {totalNights} nights
-                      </span>
-                      <span>
-                        KES{' '}
-                        {Number(totalAmount).toLocaleString('en-US', {
-                          minimumFractionDigits: 2,
-                          maximumFractionDigits: 2,
-                        })}
-                      </span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-gray-600">Taxes (16%)</span>
-                      <span>
-                        KES{' '}
-                        {Number(taxAmount).toLocaleString('en-US', {
-                          minimumFractionDigits: 2,
-                          maximumFractionDigits: 2,
-                        })}
-                      </span>
-                    </div>
-                    {addonsTotal > 0 && (
-                      <div className="flex justify-between">
-                        <span className="text-gray-600">Additional Services</span>
-                        <span>
-                          KES{' '}
-                          {addonsTotal.toLocaleString('en-US', {
-                            minimumFractionDigits: 2,
-                            maximumFractionDigits: 2,
-                          })}
-                        </span>
-                      </div>
-                    )}
-                    <Separator />
-                    <div className="flex justify-between text-lg font-semibold">
-                      <span>Total</span>
-                      <span>
-                        KES{' '}
-                        {Number(finalAmount).toLocaleString('en-US', {
-                          minimumFractionDigits: 2,
-                          maximumFractionDigits: 2,
-                        })}
-                      </span>
-                    </div>
-                  </div> */}
                   <PriceBreakdown
                     totalAmount={totalAmount}
                     taxAmount={taxAmount}
@@ -451,7 +362,7 @@ const ConfirmReservation = () => {
                   {/* Security Note */}
                   <div className="flex items-center text-sm text-gray-600 mt-4">
                     <Lock className="h-4 w-4 mr-2" />
-                    <p>Secured checkout powered by Paystack</p>
+                    <p>Secured checkout powered by DPO</p>
                   </div>
                 </div>
               </div>
