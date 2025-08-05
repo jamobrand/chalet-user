@@ -38,93 +38,31 @@ const BookingConfirmation = () => {
     navigate('/search');
     return null;
   }
-
   const generatePDF = async () => {
     setIsLoading(true);
     try {
       const element = document.getElementById('booking-confirmation-print');
-      if (!element) return;
-
-      // Create a temporary container with fixed dimensions
-      const originalElement = element.cloneNode(true);
-      const tempContainer = document.createElement('div');
-      tempContainer.style.position = 'absolute';
-      tempContainer.style.top = '-9999px';
-      tempContainer.style.left = '-9999px';
-      tempContainer.style.width = '794px'; // A4 width in pixels at 96 DPI
-      tempContainer.style.backgroundColor = '#ffffff';
-      tempContainer.style.fontFamily = 'Arial, sans-serif';
-      
-      // Reset all styles that might interfere
-      const styles = `
-        * { box-sizing: border-box !important; }
-        .bg-gradient-to-br, .bg-gradient-to-r { background: #ffffff !important; }
-        .shadow-xl, .shadow-lg { box-shadow: none !important; }
-        .backdrop-blur-sm { backdrop-filter: none !important; }
-        .rounded-3xl, .rounded-2xl, .rounded-xl { border-radius: 8px !important; }
-        .print\\:block { display: block !important; }
-        .print\\:hidden { display: none !important; }
-      `;
-      
-      const styleSheet = document.createElement('style');
-      styleSheet.textContent = styles;
-      tempContainer.appendChild(styleSheet);
-      tempContainer.appendChild(originalElement);
-      document.body.appendChild(tempContainer);
-
-      // Wait for images to load
-      const images = tempContainer.querySelectorAll('img');
-      await Promise.all(
-        Array.from(images).map((img) => {
-          if (img.complete) return Promise.resolve();
-          return new Promise((resolve) => {
-            img.onload = resolve;
-            img.onerror = resolve;
-            // Set a timeout to avoid hanging
-            setTimeout(resolve, 2000);
-          });
-        }),
-      );
-
       const opt = {
-        margin: [0.5, 0.5, 0.5, 0.5],
+        margin: 0.5,
         filename: `booking-${reservationData.bookingReference}.pdf`,
-        image: { 
-          type: 'jpeg', 
-          quality: 0.95 
-        },
+        image: { type: 'jpeg', quality: 0.98 },
         html2canvas: {
-          scale: 1,
+          scale: 2,
           useCORS: true,
-          allowTaint: false,
           logging: false,
-          backgroundColor: '#ffffff',
-          width: 794,
-          height: 1123, // A4 height
-          foreignObjectRendering: false,
-          scrollX: 0,
-          scrollY: 0,
-          windowWidth: 794,
-          windowHeight: 1123
+          allowTaint: true, // Important for images
         },
         jsPDF: {
-          unit: 'px',
-          format: [794, 1123], // A4 in pixels
+          unit: 'in',
+          format: 'a4',
           orientation: 'portrait',
-          compress: true
         },
-        pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
       };
+      await html2pdf().set(opt).from(element).save();
 
-      await html2pdf().set(opt).from(tempContainer).save();
-      
-      // Clean up
-      document.body.removeChild(tempContainer);
-      
       console.log('PDF generated successfully');
     } catch (error) {
       console.error('Error generating PDF:', error);
-      alert('Error generating PDF. Please try again.');
     } finally {
       setIsLoading(false);
     }
@@ -133,7 +71,7 @@ const BookingConfirmation = () => {
   // Simplified booking verification URL that works better on mobile
   const getBookingVerificationUrl = () => {
     const baseUrl = window.location.origin;
-    
+
     // Use a simpler approach with URL parameters instead of Base64 encoding
     const params = new URLSearchParams({
       ref: reservationData.bookingReference,
@@ -141,7 +79,7 @@ const BookingConfirmation = () => {
       guest: `${reservationData.customer.firstName}_${reservationData.customer.lastName}`,
       checkin: reservationData.checkIn,
       checkout: reservationData.checkOut,
-      chalet: reservationData.chalet.name.replace(/\s+/g, '_')
+      chalet: reservationData.chalet.name.replace(/\s+/g, '_'),
     });
 
     return `${baseUrl}/booking-verify?${params.toString()}`;
@@ -165,14 +103,14 @@ const BookingConfirmation = () => {
         // Fall through to clipboard fallback
       }
     }
-    
+
     // Fallback to clipboard
     fallbackToClipboard();
   };
 
   const fallbackToClipboard = async () => {
     const bookingUrl = getBookingVerificationUrl();
-    
+
     if (navigator.clipboard && window.isSecureContext) {
       try {
         await navigator.clipboard.writeText(bookingUrl);
@@ -183,7 +121,7 @@ const BookingConfirmation = () => {
         console.error('Failed to copy to clipboard:', error);
       }
     }
-    
+
     // Final fallback for older browsers or insecure contexts
     try {
       const textArea = document.createElement('textarea');
@@ -194,7 +132,7 @@ const BookingConfirmation = () => {
       textArea.select();
       document.execCommand('copy');
       document.body.removeChild(textArea);
-      
+
       setShowCopySuccess(true);
       setTimeout(() => setShowCopySuccess(false), 3000);
     } catch (error) {
@@ -321,7 +259,9 @@ const BookingConfirmation = () => {
               <div className="flex items-start justify-between">
                 <div>
                   <h2 className="text-3xl font-bold mb-2">{reservationData.chalet.name}</h2>
-                  <p className="text-blue-100 print:text-gray-600 mb-1">{reservationData.chalet.propertyType}</p>
+                  <p className="text-blue-100 print:text-gray-600 mb-1">
+                    {reservationData.chalet.propertyType}
+                  </p>
                   <div className="flex items-center text-blue-100 print:text-gray-600">
                     <MapPin className="w-4 h-4 mr-2" />
                     {reservationData.chalet.address}
