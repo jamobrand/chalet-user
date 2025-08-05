@@ -8,39 +8,79 @@ const BookingVerify = () => {
   
   // Parse the URL search params
   const searchParams = new URLSearchParams(location.search);
-  const bookingParam = searchParams.get('booking');
   
   let bookingData = null;
   
-  if (bookingParam) {
-    try {
-      // Handle URL-safe Base64 decoding
-      let base64Data = bookingParam
-        .replace(/-/g, '+')
-        .replace(/_/g, '/');
-      
-      // Add padding if needed
-      while (base64Data.length % 4) {
-        base64Data += '=';
+  // First try the new simple parameter format
+  const ref = searchParams.get('ref');
+  const id = searchParams.get('id');
+  const guest = searchParams.get('guest');
+  const checkin = searchParams.get('checkin');
+  const checkout = searchParams.get('checkout');
+  const chalet = searchParams.get('chalet');
+  
+  if (ref && id && guest && checkin && checkout && chalet) {
+    // New simplified format
+    bookingData = {
+      reference: ref,
+      id: id,
+      guest: guest.replace(/_/g, ' '), // Convert underscores back to spaces
+      checkIn: checkin,
+      checkOut: checkout,
+      chaletName: chalet.replace(/_/g, ' '), // Convert underscores back to spaces
+      status: 'Confirmed' // Default status
+    };
+  } else {
+    // Fallback to old Base64 format for backward compatibility
+    const bookingParam = searchParams.get('booking');
+    
+    if (bookingParam) {
+      try {
+        // Handle URL-safe Base64 decoding
+        let base64Data = bookingParam
+          .replace(/-/g, '+')
+          .replace(/_/g, '/');
+        
+        // Add padding if needed
+        while (base64Data.length % 4) {
+          base64Data += '=';
+        }
+        
+        // Decode Base64 and parse JSON
+        const decodedData = atob(base64Data);
+        bookingData = JSON.parse(decodedData);
+        
+      } catch (error) {
+        console.error('Error parsing booking data:', error);
+        bookingData = null;
       }
-      
-      // Decode Base64 and parse JSON
-      const decodedData = atob(base64Data);
-      bookingData = JSON.parse(decodedData);
-      
-    } catch (error) {
-      console.error('Error parsing booking data:', error);
-      bookingData = null;
     }
   }
   
   // Safely format dates with error handling
-  const formatDate = (dateString:string) => {
+  const formatDate = (dateString: string) => {
     try {
-      return format(parseISO(dateString), 'PPP');
+      // Handle different date formats
+      let date;
+      if (dateString.includes('T')) {
+        // ISO format with time
+        date = parseISO(dateString);
+      } else if (dateString.includes('-')) {
+        // Simple date format YYYY-MM-DD
+        date = parseISO(dateString);
+      } else {
+        // Try parsing as is
+        date = new Date(dateString);
+      }
+      
+      if (isNaN(date.getTime())) {
+        throw new Error('Invalid date');
+      }
+      
+      return format(date, 'PPP');
     } catch (error) {
-      console.error('Error parsing date:', error);
-      return 'Invalid Date';
+      console.error('Error parsing date:', dateString, error);
+      return dateString; // Return original string if parsing fails
     }
   };
 
@@ -119,7 +159,7 @@ const BookingVerify = () => {
               <div className="flex items-center space-x-2">
                 <Check className="w-5 h-5 text-green-500" />
                 <span className="px-3 py-1 bg-green-100 text-green-800 rounded-full text-sm font-medium">
-                  {bookingData.status}
+                  {bookingData.status || 'Confirmed'}
                 </span>
               </div>
             </div>

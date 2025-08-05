@@ -45,103 +45,162 @@ const BookingConfirmation = () => {
       const element = document.getElementById('booking-confirmation-print');
       if (!element) return;
 
-      // Wait for images to load before generating PDF
-      const images = element?.querySelectorAll('img');
+      // Create a temporary container with fixed dimensions
+      const originalElement = element.cloneNode(true);
+      const tempContainer = document.createElement('div');
+      tempContainer.style.position = 'absolute';
+      tempContainer.style.top = '-9999px';
+      tempContainer.style.left = '-9999px';
+      tempContainer.style.width = '794px'; // A4 width in pixels at 96 DPI
+      tempContainer.style.backgroundColor = '#ffffff';
+      tempContainer.style.fontFamily = 'Arial, sans-serif';
+      
+      // Reset all styles that might interfere
+      const styles = `
+        * { box-sizing: border-box !important; }
+        .bg-gradient-to-br, .bg-gradient-to-r { background: #ffffff !important; }
+        .shadow-xl, .shadow-lg { box-shadow: none !important; }
+        .backdrop-blur-sm { backdrop-filter: none !important; }
+        .rounded-3xl, .rounded-2xl, .rounded-xl { border-radius: 8px !important; }
+        .print\\:block { display: block !important; }
+        .print\\:hidden { display: none !important; }
+      `;
+      
+      const styleSheet = document.createElement('style');
+      styleSheet.textContent = styles;
+      tempContainer.appendChild(styleSheet);
+      tempContainer.appendChild(originalElement);
+      document.body.appendChild(tempContainer);
+
+      // Wait for images to load
+      const images = tempContainer.querySelectorAll('img');
       await Promise.all(
         Array.from(images).map((img) => {
           if (img.complete) return Promise.resolve();
           return new Promise((resolve) => {
             img.onload = resolve;
             img.onerror = resolve;
+            // Set a timeout to avoid hanging
+            setTimeout(resolve, 2000);
           });
         }),
       );
 
       const opt = {
-        margin: 0.5,
+        margin: [0.5, 0.5, 0.5, 0.5],
         filename: `booking-${reservationData.bookingReference}.pdf`,
-        image: { type: 'jpeg', quality: 0.98 },
+        image: { 
+          type: 'jpeg', 
+          quality: 0.95 
+        },
         html2canvas: {
-          scale: 2,
+          scale: 1,
           useCORS: true,
-          allowTaint: true,
+          allowTaint: false,
           logging: false,
           backgroundColor: '#ffffff',
-          foreignObjectRendering: true,
+          width: 794,
+          height: 1123, // A4 height
+          foreignObjectRendering: false,
+          scrollX: 0,
+          scrollY: 0,
+          windowWidth: 794,
+          windowHeight: 1123
         },
         jsPDF: {
-          unit: 'in',
-          format: 'a4',
+          unit: 'px',
+          format: [794, 1123], // A4 in pixels
           orientation: 'portrait',
+          compress: true
         },
+        pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
       };
-      await html2pdf().set(opt).from(element).save();
 
+      await html2pdf().set(opt).from(tempContainer).save();
+      
+      // Clean up
+      document.body.removeChild(tempContainer);
+      
       console.log('PDF generated successfully');
     } catch (error) {
       console.error('Error generating PDF:', error);
+      alert('Error generating PDF. Please try again.');
     } finally {
       setIsLoading(false);
     }
   };
 
-  // Create a proper URL for the QR code that includes all necessary booking details
+  // Simplified booking verification URL that works better on mobile
   const getBookingVerificationUrl = () => {
     const baseUrl = window.location.origin;
-    const bookingData = {
-      id: reservationData.id,
-      reference: reservationData.bookingReference,
-      chaletName: reservationData.chalet.name,
-      checkIn: reservationData.checkIn,
-      checkOut: reservationData.checkOut,
-      guest: `${reservationData.customer.firstName} ${reservationData.customer.lastName}`,
-      status: reservationData.status,
-    };
-
-    // Use URL-safe Base64 encoding and proper URL encoding
-    const encodedData = btoa(JSON.stringify(bookingData))
-      .replace(/\+/g, '-')
-      .replace(/\//g, '_')
-      .replace(/=/g, '');
-
+    
+    // Use a simpler approach with URL parameters instead of Base64 encoding
     const params = new URLSearchParams({
-      booking: encodedData,
-    }).toString();
+      ref: reservationData.bookingReference,
+      id: reservationData.id,
+      guest: `${reservationData.customer.firstName}_${reservationData.customer.lastName}`,
+      checkin: reservationData.checkIn,
+      checkout: reservationData.checkOut,
+      chalet: reservationData.chalet.name.replace(/\s+/g, '_')
+    });
 
-    return `${baseUrl}/booking-verify?${params}`;
+    return `${baseUrl}/booking-verify?${params.toString()}`;
   };
 
   const shareBooking = async () => {
+    const bookingUrl = getBookingVerificationUrl();
     const shareData = {
       title: 'Booking Confirmation',
       text: `Booking confirmed for ${reservationData.chalet.name} - Reference: ${reservationData.bookingReference}`,
-      url: getBookingVerificationUrl(),
+      url: bookingUrl,
     };
 
-    if (navigator.share && navigator.canShare && navigator.canShare(shareData)) {
+    // Check if Web Share API is supported and the data can be shared
+    if (navigator.share) {
       try {
         await navigator.share(shareData);
+        return;
       } catch (error) {
         console.error('Error sharing:', error);
-        // Fallback to clipboard if share fails
-        fallbackToClipboard();
+        // Fall through to clipboard fallback
       }
-    } else {
-      // Fallback: copy to clipboard
-      fallbackToClipboard();
     }
+    
+    // Fallback to clipboard
+    fallbackToClipboard();
   };
 
   const fallbackToClipboard = async () => {
+    const bookingUrl = getBookingVerificationUrl();
+    
+    if (navigator.clipboard && window.isSecureContext) {
+      try {
+        await navigator.clipboard.writeText(bookingUrl);
+        setShowCopySuccess(true);
+        setTimeout(() => setShowCopySuccess(false), 3000);
+        return;
+      } catch (error) {
+        console.error('Failed to copy to clipboard:', error);
+      }
+    }
+    
+    // Final fallback for older browsers or insecure contexts
     try {
-      await navigator.clipboard.writeText(getBookingVerificationUrl());
-      // Better user feedback than alert
+      const textArea = document.createElement('textarea');
+      textArea.value = bookingUrl;
+      textArea.style.position = 'fixed';
+      textArea.style.opacity = '0';
+      document.body.appendChild(textArea);
+      textArea.select();
+      document.execCommand('copy');
+      document.body.removeChild(textArea);
+      
       setShowCopySuccess(true);
       setTimeout(() => setShowCopySuccess(false), 3000);
     } catch (error) {
-      console.error('Failed to copy to clipboard:', error);
-      // Final fallback - show URL in a prompt
-      prompt('Copy this booking link:', getBookingVerificationUrl());
+      console.error('All clipboard methods failed:', error);
+      // Show the URL in a prompt as final resort
+      prompt('Copy this booking link:', bookingUrl);
     }
   };
 
@@ -229,10 +288,10 @@ const BookingConfirmation = () => {
         {/* Main Content */}
         <div
           id="booking-confirmation-print"
-          className="bg-white rounded-3xl shadow-xl overflow-hidden"
+          className="bg-white rounded-3xl shadow-xl overflow-hidden print:shadow-none print:rounded-none"
         >
           {/* PDF Header with Logo - Only visible in PDF */}
-          <div className="print:block hidden bg-white p-6 border-b border-gray-200">
+          <div className="print:block hidden bg-white p-6 border-b border-gray-200 page-break-inside-avoid">
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-4">
                 <img
@@ -256,21 +315,21 @@ const BookingConfirmation = () => {
           </div>
 
           {/* Property Hero */}
-          <div className="relative bg-gradient-to-r from-blue-600 to-purple-600 p-8 text-white">
-            <div className="absolute inset-0 bg-black/10"></div>
+          <div className="relative bg-gradient-to-r from-blue-600 to-purple-600 p-8 text-white print:bg-gray-100 print:text-black page-break-inside-avoid">
+            <div className="absolute inset-0 bg-black/10 print:hidden"></div>
             <div className="relative">
               <div className="flex items-start justify-between">
                 <div>
                   <h2 className="text-3xl font-bold mb-2">{reservationData.chalet.name}</h2>
-                  <p className="text-blue-100 mb-1">{reservationData.chalet.propertyType}</p>
-                  <div className="flex items-center text-blue-100">
+                  <p className="text-blue-100 print:text-gray-600 mb-1">{reservationData.chalet.propertyType}</p>
+                  <div className="flex items-center text-blue-100 print:text-gray-600">
                     <MapPin className="w-4 h-4 mr-2" />
                     {reservationData.chalet.address}
                   </div>
                 </div>
                 <div className="text-right">
                   <div className="text-2xl font-bold">KES {totalAmount.toLocaleString()}</div>
-                  <div className="text-blue-100">
+                  <div className="text-blue-100 print:text-gray-600">
                     {numberOfNights} night{numberOfNights > 1 ? 's' : ''}
                   </div>
                 </div>
@@ -278,10 +337,10 @@ const BookingConfirmation = () => {
             </div>
           </div>
 
-          <div className="p-8 space-y-8">
+          <div className="p-8 space-y-8 print:space-y-6">
             {/* Stay Details */}
-            <div className="grid md:grid-cols-3 gap-6">
-              <div className="flex items-center space-x-4 p-4 bg-gray-50 rounded-2xl">
+            <div className="grid md:grid-cols-3 gap-6 print:gap-4 page-break-inside-avoid">
+              <div className="flex items-center space-x-4 p-4 bg-gray-50 rounded-2xl print:border print:border-gray-300">
                 <div className="flex-shrink-0">
                   <Calendar className="w-8 h-8 text-blue-600" />
                 </div>
@@ -296,7 +355,7 @@ const BookingConfirmation = () => {
                 </div>
               </div>
 
-              <div className="flex items-center space-x-4 p-4 bg-gray-50 rounded-2xl">
+              <div className="flex items-center space-x-4 p-4 bg-gray-50 rounded-2xl print:border print:border-gray-300">
                 <div className="flex-shrink-0">
                   <Clock className="w-8 h-8 text-purple-600" />
                 </div>
@@ -311,7 +370,7 @@ const BookingConfirmation = () => {
                 </div>
               </div>
 
-              <div className="flex items-center space-x-4 p-4 bg-gray-50 rounded-2xl">
+              <div className="flex items-center space-x-4 p-4 bg-gray-50 rounded-2xl print:border print:border-gray-300">
                 <div className="flex-shrink-0">
                   <Users className="w-8 h-8 text-green-600" />
                 </div>
@@ -333,7 +392,7 @@ const BookingConfirmation = () => {
             </div>
 
             {/* Property Details */}
-            <div className="bg-gradient-to-r from-gray-50 to-blue-50 rounded-2xl p-6">
+            <div className="bg-gradient-to-r from-gray-50 to-blue-50 print:bg-gray-50 print:border print:border-gray-300 rounded-2xl p-6 page-break-inside-avoid">
               <h3 className="text-xl font-bold text-gray-900 mb-4 flex items-center">
                 <Home className="w-6 h-6 mr-2 text-blue-600" />
                 Property Details
@@ -361,7 +420,7 @@ const BookingConfirmation = () => {
             </div>
 
             {/* Guest Information */}
-            <div className="bg-gradient-to-r from-purple-50 to-pink-50 rounded-2xl p-6">
+            <div className="bg-gradient-to-r from-purple-50 to-pink-50 print:bg-gray-50 print:border print:border-gray-300 rounded-2xl p-6 page-break-inside-avoid">
               <h3 className="text-xl font-bold text-gray-900 mb-4">Guest Information</h3>
               <div className="grid md:grid-cols-2 gap-6">
                 <div className="space-y-3">
@@ -391,26 +450,26 @@ const BookingConfirmation = () => {
             </div>
 
             {/* Payment Summary */}
-            <div className="bg-gradient-to-r from-green-50 to-emerald-50 rounded-2xl p-6">
+            <div className="bg-gradient-to-r from-green-50 to-emerald-50 print:bg-gray-50 print:border print:border-gray-300 rounded-2xl p-6 page-break-inside-avoid">
               <h3 className="text-xl font-bold text-gray-900 mb-4 flex items-center">
                 <CreditCard className="w-6 h-6 mr-2 text-green-600" />
                 Payment Summary
               </h3>
               <div className="space-y-4">
-                <div className="flex justify-between items-center py-2 border-b border-green-200">
+                <div className="flex justify-between items-center py-2 border-b border-green-200 print:border-gray-300">
                   <span className="text-gray-600">Payment Status</span>
                   <span className="font-semibold text-green-600 flex items-center">
                     <CheckCircle className="w-4 h-4 mr-1" />
                     {reservationData.payments[0]?.status.replace('_', ' ')}
                   </span>
                 </div>
-                <div className="flex justify-between items-center py-2 border-b border-green-200">
+                <div className="flex justify-between items-center py-2 border-b border-green-200 print:border-gray-300">
                   <span className="text-gray-600">Payment Method</span>
                   <span className="font-medium">
                     {reservationData.payments[0]?.method.replace('_', ' ')}
                   </span>
                 </div>
-                <div className="flex justify-between items-center py-2 border-b border-green-200">
+                <div className="flex justify-between items-center py-2 border-b border-green-200 print:border-gray-300">
                   <span className="text-gray-600">Transaction ID</span>
                   <span className="font-mono text-sm">
                     {reservationData.payments[0]?.transactionId}
@@ -418,7 +477,7 @@ const BookingConfirmation = () => {
                 </div>
                 <div className="flex justify-between items-center py-2 pt-4">
                   <span className="text-xl font-bold text-gray-900">Total Amount</span>
-                  <span className="text-2xl font-bold text-green-600">
+                  <span className="text-2xl font-bold text-green-600 print:text-black">
                     KES {totalAmount.toLocaleString()}
                   </span>
                 </div>
@@ -426,15 +485,17 @@ const BookingConfirmation = () => {
             </div>
 
             {/* QR Code Section */}
-            <div className="text-center py-8 break-inside-avoid">
+            <div className="text-center py-8 page-break-inside-avoid">
               <h3 className="text-xl font-bold text-gray-900 mb-6">Digital Verification</h3>
               <div className="inline-block p-6 bg-white rounded-2xl shadow-lg border-2 border-dashed border-gray-200">
                 <div className="qr-code-container">
                   <QRCodeSVG
                     value={getBookingVerificationUrl()}
                     size={200}
-                    level="M"
+                    level="H"
                     includeMargin={true}
+                    fgColor="#000000"
+                    bgColor="#FFFFFF"
                   />
                 </div>
                 <p className="text-sm text-gray-500 mt-4 max-w-xs">
