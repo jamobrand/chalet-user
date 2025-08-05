@@ -41,9 +41,13 @@ const PaymentSuccess = () => {
     },
     enabled: !!reservationRef,
     // FIX: Use query data instead of query object
+    // refetchInterval: (query) => {
+    //   // query.state.data contains the actual response data
+    //   return query.state.data?.status === 'PENDING' ? 3000 : false;
+    // },
     refetchInterval: (query) => {
-      // query.state.data contains the actual response data
-      return query.state.data?.status === 'PENDING' ? 3000 : false;
+      const status = query.state.data?.status;
+      return status === 'CONFIRMED' ? false : 3000;
     },
     refetchIntervalInBackground: true,
   });
