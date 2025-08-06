@@ -32,7 +32,7 @@ const createPaymentToken = async (
 
   if (!response.ok) {
     const errorData:ErrorMessage = await response.json();
-    throw new Error(errorData.error || 'Failed to create payment token');
+    throw new Error(errorData.error || 'Failed to process payment. Please try again.');
   }
 
   const result = await response.json();
@@ -96,8 +96,8 @@ const ConfirmReservation = () => {
     },
     onError: (error: Error) => {
       toast({
-        title: 'Payment Token Creation Failed',
-        description: error.message || 'Unable to create payment token. Please try again.',
+        title: 'Payment Failed',
+        description: error.message || 'Unable to process payment. Please try again.',
         variant: 'destructive',
       });
       setIsProcessing(false);
@@ -136,7 +136,6 @@ const ConfirmReservation = () => {
         })),
     };
 
-    console.log('Payment Token Data:', tokenData);
     mutation.mutate(tokenData);
   };
 
@@ -290,7 +289,7 @@ const ConfirmReservation = () => {
                   {isProcessing ? (
                     <>
                       <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                      Creating payment token...
+                      Processing payment...
                     </>
                   ) : (
                     <>
