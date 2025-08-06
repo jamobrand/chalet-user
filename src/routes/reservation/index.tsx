@@ -220,6 +220,13 @@ const BookingConfirmation = () => {
               <Share2 className="w-4 h-4 mr-2" />
               Share
             </button>
+
+            <button
+              onClick={() => navigate('/')}
+              className="bg-green-600 text-white px-6 py-2 rounded-lg hover:bg-gray-700"
+            >
+              Return Home
+            </button>
           </div>
         </div>
 
